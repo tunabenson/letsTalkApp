@@ -1,31 +1,63 @@
-import React, { useState } from 'react';
+import React, { createContext, useContext, useEffect, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import Home from './pages/Home';
 import 'react-native-gesture-handler';
 import { NavigationContainer } from '@react-navigation/native';
 import LoginPage from './pages/Login';
 import { createStackNavigator } from '@react-navigation/stack';
-import SignUpScreen from './pages/SignupPage';
+import SignUpPage from './pages/SignupPage';
+import { auth } from './api/firebaseConfig';
+import { onAuthStateChanged } from 'firebase/auth';
+import LoadUpScreen from './pages/LoadingPage';
 
 const Stack = createStackNavigator();
 
-export default function App() {
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
+export const UserContext= createContext();
 
-  const handleLogin = () => {
-    setIsLoggedIn(true);
-  };
+export default function App() {
+  const [user, setUser] = useState(null);
+  const [signedIn, setSignedIn]= useState(false);
+  const [isLoading, setIsLoading]= useState(true);
+
+  useEffect(() => {
+    onAuthStateChanged(auth, (user) => {
+      if (user) {
+        setUser(user);
+        setSignedIn(true);
+      }
+      else{
+        setSignedIn(false);
+        setUser(null);
+      }
+      setIsLoading(false);
+    });
+  }, [user]);
+
+
+  if (isLoading){
+    return (<LoadUpScreen/>)
+  }
 
   return (
     <View style={styles.container}>
       <NavigationContainer>
-        <Stack.Navigator screenOptions={{headerShown:false}}>
-          <Stack.Screen component={LoginPage} name='LoginPage'/>
+      <UserContext.Provider value={{user, setUser}}>
+        <Stack.Navigator id='1' screenOptions={{headerShown:false}} >
+      { signedIn? (
           <Stack.Screen component={Home} name='HomePage'/>
-          <Stack.Screen component={SignUpScreen} name='SignUpPage'/>
+      ): (
+        <Stack.Group>
+          <Stack.Screen component={LoginPage} name='LoginPage'/>
+          <Stack.Screen component={SignUpPage} name='SignUpPage'/>
+        </Stack.Group>
+       
+      )
+      }
         </Stack.Navigator>
+        </UserContext.Provider>
       </NavigationContainer>
-    </View>
+      </View>
+  
   );
 }
 

@@ -10,27 +10,27 @@
       "backgroundColor": "#ffffff"
     },
     "ios": {
-      "googleServicesFile": "./GoogleService-Info.plist",
       "supportsTablet": true
     },
     "android": {
-      "googleServicesFile": "./google-services.json",
       "versionCode": 1,
       "adaptiveIcon": {
         "backgroundColor": "#ffffff"
-      },
-      "package": "com.letstalk.app"
+      }
     },
     "web": {},
     "plugins": [
       "expo-router",
-      "@react-native-firebase/app",
       [
-        "expo-build-properties",
+        "expo-image-picker",
         {
-          "ios": {
-            "useFrameworks": "static"
-          }
+          "photosPermission": "The app accesses your photos to let you share them with your friends."
+        }
+      ],
+      [
+        "expo-secure-store",
+        {
+          "faceIDPermission": "Allow LetsTalk to access your Face ID biometric data."
         }
       ]
     ]
