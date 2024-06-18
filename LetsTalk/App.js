@@ -9,10 +9,11 @@ import SignUpPage from './pages/SignupPage';
 import { auth } from './api/firebaseConfig';
 import { onAuthStateChanged } from 'firebase/auth';
 import LoadUpScreen from './pages/LoadingPage';
+import ForgotPasswordPage from './pages/ForgotPasswordPage';
 
 const Stack = createStackNavigator();
 
-export const UserContext= createContext();
+//export const UserContext= createContext();
 
 export default function App() {
   const [user, setUser] = useState(null);
@@ -21,7 +22,7 @@ export default function App() {
 
   useEffect(() => {
     onAuthStateChanged(auth, (user) => {
-      if (user) {
+      if (user && auth.currentUser.emailVerified ) { 
         setUser(user);
         setSignedIn(true);
       }
@@ -41,20 +42,20 @@ export default function App() {
   return (
     <View style={styles.container}>
       <NavigationContainer>
-      <UserContext.Provider value={{user, setUser}}>
         <Stack.Navigator id='1' screenOptions={{headerShown:false}} >
       { signedIn? (
           <Stack.Screen component={Home} name='HomePage'/>
       ): (
         <Stack.Group>
+          
           <Stack.Screen component={LoginPage} name='LoginPage'/>
+          <Stack.Screen component={ForgotPasswordPage} name='ForgotPassword'/>
           <Stack.Screen component={SignUpPage} name='SignUpPage'/>
         </Stack.Group>
        
       )
       }
         </Stack.Navigator>
-        </UserContext.Provider>
       </NavigationContainer>
       </View>
   
