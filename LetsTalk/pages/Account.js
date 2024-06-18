@@ -1,122 +1,101 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, Image, FlatList} from 'react-native';
-import { doc, getDoc } from 'firebase/firestore';
+import { View, Text, Image, FlatList, Pressable} from 'react-native';
+import { collection, doc, getDoc, getDocs, limit, query, where } from 'firebase/firestore';
 import { auth, db } from '../api/firebaseConfig';
 import { ref, getDownloadURL } from "firebase/storage";
 import { storage } from "../api/firebaseConfig";
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import Post from '../components/Post';
+import { signOut } from 'firebase/auth';
+import { createStackNavigator } from '@react-navigation/stack';
+import {FullPostScreen} from'./FullPostScreen';
 
-const ProfilePage = ({user}) => {
-  const [imageUrl, setImageUrl] = useState('');
-  const [isLoadingImage, setIsLoadingImage]= useState(true);
+
+
+var posts= [];
+const Stack= createStackNavigator();
+const Account = ({route, navigation}) => {
+  const { uid , username}=route.params;
+  const [account, setAccount] = useState(null);
   
+  const fetchAccount=async()=>{
+    const userDoc= await getDoc(doc(db, "users", uid));
+    setAccount(userDoc.data());
 
-  const fetchAccount=async({username})=>{
-    const docSnap= await getDoc(doc(db, "users", auth.currentUser.uid));
-    if(docSnap.exists()){
-      console.log(docSnap.data)
-    }
-  }
+  };
+
+const fetchPost=async()=>{
+  const postsQuery = query(collection(db, "posts"), where("username", '==', username), limit(10)); //TODO change to read from user collection?
+  const snap = await getDocs(postsQuery);
+   posts.length=0;
+  snap.forEach((doc) => {
+    let newData= {...doc.data(), "id":doc.id};
+    posts.push(newData);
+  });
+}
 
 
-    
-  const getURL=async({imagePath})=>{
-     // Reference to the image file in Firebase Storage
-     const imageRef = ref(storage, imagePath);
-      
-     // Fetch the download URL
-        await getDownloadURL(imageRef)
-       .then((url) => {
-         setImageUrl(url);
-       })
-       .catch((error) => {
-         console.error("Error fetching image URL: ", error);
-       });
-  }
-  const ProfileImage = ({ imagePath }) => {
-    
-  
+ 
+
      useEffect(() => {
-     getURL(imagePath).then(r => setIsLoadingImage(false));
-    }, [imagePath]);
+      fetchAccount();
+      fetchPost();
+    }, [username,uid ]);
 
-    if (imageUrl){
-      return (<Image className="w-24 h-24 mt-10  bg-slate-400 rounded-full border-4 border-white" source={{uri: imageUrl}} ></Image>);
-    }
+
+
+
+
+
+  if(!account){
     return (
-      <Image className="w-24 h-24 mt-10 rounded-full border-4 border-white" source={require( '../assets/profile.png')}></Image>    );
+      <View className="flex-1 bg-lightblue-500 p-4"></View>
+    )
   }
-  
 
-  const [posts, setPosts] = useState([
-    { id: '1', user: "test" ,content: 'This is the first post', date: new Date().toLocaleDateString() },
-    { id: '2', user: "test",content: 'Another post by the user', date: new Date().toLocaleDateString() },
-    { id: '3',user: "test", content: 'Yet another interesting post', date: new Date().toLocaleDateString() },
-    { id: '4', user: "test",content: 'Yet another interesting post', date: new Date().toLocaleDateString() },
-    { id: '5',user: "test", content: 'Yet another interesting post', date: new Date().toLocaleDateString() },
-    { id: '6',user: "test", content: 'Yet another interesting post', date: new Date().toLocaleDateString() },
-    { id: '7',user: "test", content: 'Yet another interesting post', date: new Date().toLocaleDateString() },
-    { id: '8', user: "test",content: 'Yet another interesting post', date: new Date().toLocaleDateString() },
-  ]);
-
-  const [achievements, setAchievements] = useState([
-    { id: '1', achievement: 'Achievement 1' },
-    { id: '2', achievement: 'Achievement 2' },
-    { id: '3', achievement: 'Achievement 3' },
-    // Add more achievements as needed
-  ]);
-
-
-
-
-
-  const MiniPost = ({ post }) => (
-    <View className="m-2 p-4 bg-white rounded-lg shadow-lg">
-      <Text className="text-base text-gray-800 mb-2">{post.content}</Text>
-      <Text className="text-sm text-gray-500 self-end">{post.date}</Text>
-    </View>
-  );
-
-
-
-  
-
-  
   
   return (
     <View className="flex-1 bg-lightblue-500 p-4">
       <View className="flex-row items-center mb-4">
-        <ProfileImage imagePath={'profilepic/'.concat(auth.currentUser.uid).concat('.jpg')} ></ProfileImage>
+        <Image className="w-24 h-24 mt-10  bg-slate-400 rounded-full border-4 border-white" source={account.url?{uri: account.url}:require('../assets/profile.png')} ></Image>
         <View className="flex-1 ml-4 mt-10 bg-white p-4 rounded-lg shadow-md">
-          <Text className="text-lg font-bold mb-1">{auth.currentUser.displayName}</Text>
-          <Text className="text-gray-700 mb-1">random shit for now</Text>
-          <Text className="text-gray-500">{auth.currentUser.joinDate}</Text>
+          <Text className="text-lg font-bold mb-1">{account.username}</Text>
+          <Text className="text-gray-700 mb-1">{account.bio}</Text>
+          <Text className="text-gray-500">{new Date(account.joinDate.seconds * 1000).toLocaleDateString("en-US")}</Text>
+          {account.username===auth.currentUser.displayName?(
+          <Pressable
+        className="bg-red-500 p-2 rounded-md mt-4 w-24"
+        onPress={()=>signOut(auth)}
+        >
+        <Text className="text-white text-center">Sign Out</Text>
+      </Pressable>
+        ): null}   
         </View>
-      </View>
-
-      <View contentContainerStyle={{ flexDirection: 'row' }}>
+      </View>     
         <View className="flex-1 bg-lightblue-500 border-cyan-400 ">
-          <Text className="text-white text-xl mb-2">Recent Posts</Text>
+          <Text className="text-white text-2xl mt-4 font-bold">Recent Posts</Text>
           <FlatList
             data={posts}
-            renderItem={({ item }) => <MiniPost post={item} />}
-            keyExtractor={(item) => item.id}
-            style={{ flex: 1 }}
+            renderItem={({item}) => {return(<Post item={item} fromAccount={true} navigation={navigation}/>)}}
+            keyExtractor={(item, index) => index.toString()}
           />
         </View>
-        <View className="flex-1 ml-4">
-          <Text className="text-white text-xl mb-2">Achievements</Text>
-          {achievements.map((item) => (
-            <View key={item.id} className="mb-2 p-4 bg-white rounded-lg shadow-lg">
-              <Text className="text-gray-800">{item.achievement}</Text>
-            </View>
-          ))}
-        </View>
-      </View>
     </View>
   );
 
 
 };
+
+const ProfilePage=({route, navigation})=>{
+  return(
+  <View className="flex-1 bg-gray-100">
+<Stack.Navigator  initialRouteName={'ProfilePage'}>
+    <Stack.Screen name='ProfilePage' component={Account} initialParams={route.params} options={{headerShown:false}}/>
+    <Stack.Screen name='Full-Post' component={FullPostScreen} initialParams={{fromAccount:true}} options={{headerShown:false}}/>
+  </Stack.Navigator>
+  </View>
+  )
+}
 
 export default ProfilePage;
 // const  ProfileImage=()=>{

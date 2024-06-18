@@ -1,14 +1,15 @@
 import React, { useState }from 'react';
 import { createStackNavigator } from '@react-navigation/stack';
-import { View, Text, TextInput, TouchableOpacity, Alert, FlatList, Pressable, KeyboardAvoidingView, Platform, Keyboard, ActivityIndicator, Image} from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, Alert, FlatList, Pressable, KeyboardAvoidingView, Platform, Keyboard, ActivityIndicator, Image, Linking} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import  FontAwesome from '@expo/vector-icons/FontAwesome';
 import { db,auth, storage } from '../api/firebaseConfig';
-import { createUserWithEmailAndPassword, sendEmailVerification, updateProfile } from 'firebase/auth';
-import { setDoc, Timestamp, doc} from 'firebase/firestore';
+import { createUserWithEmailAndPassword, fetchSignInMethodsForEmail, sendEmailVerification, signInWithCredential, signOut, updateProfile } from 'firebase/auth';
+import { setDoc, Timestamp, doc, query, where, getDocs, collection, limit} from 'firebase/firestore';
 import  * as ImagePicker from 'expo-image-picker'
-import { ref, uploadBytes } from 'firebase/storage';
+import { getDownloadURL, ref, uploadBytes } from 'firebase/storage';
 import * as FileSystem from 'expo-file-system';
+import { endAsyncEvent } from 'react-native/Libraries/Performance/Systrace';
 
 
 
@@ -22,6 +23,23 @@ const SignUpStepOne = ({navigation}) => {
   const [hiddenPassword, setHiddenPassword]=useState(true);
   const [isLoading, setIsLoading]= useState(false);
 
+
+
+  const checkInputsValid=async()=>{
+    const userQuery = query(collection(db, "users"), where("username", "==", username), limit(1));
+    const querySnapshot = await getDocs(userQuery);   
+   if(!querySnapshot.empty){
+        Alert.alert('Error', "username Taken");
+        return false;
+    };
+    const emailExists= await fetchSignInMethodsForEmail(auth, "habracadabra2006@gmail.com");
+    console.log(emailExists)
+    if(emailExists.length>0){
+      Alert.alert('Error', 'Email is already in use');
+      return false;
+    }
+    return true;
+  }
   
   const handleNext =  async() => {
     Keyboard.dismiss();
@@ -34,17 +52,17 @@ const SignUpStepOne = ({navigation}) => {
       Alert.alert('Error', 'Please fill all fields');
       return;
     }
-        setIsLoading(true);
-       // const q= query(collection(db, "users", where("username", '==', username.toString())));
-     //   if((await getDocs()).size===0){
-          navigation.navigate('SignUpPage2', {name ,email, username, password}); //perhaps add name decide if you want that 
-          return;
-     //   }
-       // Alert.alert('Error', 'username is already taken!');
-       // setIsLoading(false);
-          
-        
+    setIsLoading(true);
+    const valid= await checkInputsValid();
+    if(valid){
+      navigation.navigate('SignUpPage2', {name ,email, username, password}); //perhaps add name decide if you want that 
+      setIsLoading(false);
+      return;
+    }
+    setIsLoading(false);
+  
     }catch(e){
+      setIsLoading(false);   
         console.log(e.message);
     }
   };
@@ -56,7 +74,7 @@ const SignUpStepOne = ({navigation}) => {
       <View className="flex-1 justify-center items-center bg-lightblue-500 p-4">
     <Text className="text-white text-3xl mb-15  font-semibold">Sign Up</Text>
     <TextInput
-      className="w-64 p-3 mb-3 mt-5 border border-gray-300 rounded bg-white text-black"
+      className="w-64 p-3 mb-3 mt-5 border border-gray-300 rounded-2xl bg-white text-black"
       hitSlop={15}
       placeholder="Full Name"
       value={name}
@@ -65,7 +83,7 @@ const SignUpStepOne = ({navigation}) => {
       onChangeText={(newText) => setName(newText)}
     />
      <TextInput
-      className="w-64 p-3 mb-3 border border-gray-300 rounded bg-white text-black"
+      className="w-64 p-3 mb-3 border border-gray-300 rounded-2xl bg-white text-black"
       hitSlop={15}
       placeholder="Email"
       keyboardType='email-address'
@@ -77,16 +95,17 @@ const SignUpStepOne = ({navigation}) => {
       onChangeText={(newText) => setEmail(newText)}
     />
     <TextInput
-      className="w-64 p-3 mb-3 border border-gray-300 rounded bg-white text-black"
+      className="w-64 p-3 mb-3 border border-gray-300 rounded-2xl bg-white text-black"
       hitSlop={15}
       placeholder="Username"
       keyboardType='ascii-capable'
+      
       value={username}
       autoCorrect={false}
       autoComplete='username-new'
       onChangeText={(newText) => setUsername(newText.replace(/ /g, ''))}
     />
-    <View className="flex flex-row items-center w-64 p-3 mb-4 border border-gray-300 rounded bg-white">
+    <View className="flex flex-row items-center w-64 p-3 mb-4 border border-gray-300 rounded-2xl bg-white">
       <TextInput
         hitSlop={15}
         className="flex-1 text-black"
@@ -101,7 +120,7 @@ const SignUpStepOne = ({navigation}) => {
         <FontAwesome name={hiddenPassword ? 'eye-slash' : 'eye'} size={18} color={'black'} />
       </Pressable>
     </View>
-    <View className="flex flex-row items-center w-64 p-3 mb-4 border border-gray-300 rounded bg-white">
+    <View className="flex flex-row items-center w-64 p-3 mb-4 border border-gray-300 rounded-2xl bg-white">
       <TextInput
         className="flex-1 text-black"
         placeholder="Confirm Password"
@@ -119,7 +138,7 @@ const SignUpStepOne = ({navigation}) => {
       :
       <TouchableOpacity
       hitSlop={15}
-        className="w-64 p-4 rounded bg-white items-center"
+        className="w-64 p-4 bg-white items-center rounded-2xl"
         onPress={handleNext}
         activeOpacity={0.7}
       >
@@ -154,17 +173,18 @@ const SignUpStepTwo = ({navigation, route}) => {
     navigation.navigate('SignUpPage3', {name,email,username,password,selectedForums})
   }
 
-
+  //TODO fetch from firebase forums instead of auto provider!
   return (
     <SafeAreaView className="flex-1 justify-center items-center bg-lightblue-500 p-4">
       <Text className="text-white text-3xl mt-5 font-semibold">Select Your Interests</Text>
       <FlatList className='flex-auto '
-        data={forums}
+        data={forums} 
         renderItem={({ item }) => (
           <TouchableOpacity
             className={`p-4 m-2 rounded-full ${
               selectedForums.includes(item) ? 'bg-white' : 'bg-gray-300'
             }`}
+            hitSlop={10}
             onPress={() => toggleForumSelection(item)}
             activeOpacity={0.7}
           >
@@ -200,7 +220,7 @@ const SignUpStepTwo = ({navigation, route}) => {
 
 };
 
-const SignUpStepThree = ({navigation, route }) => {
+const SignUpStepThree = ({navigation, route}) => {
   
   const {name,email,username,password,selectedForums} = route.params;
   const [bio, setBio] = useState('');
@@ -237,8 +257,13 @@ const SignUpStepThree = ({navigation, route }) => {
       })
       const save=ref(storage, 'profilepic/'.concat(auth.currentUser.uid).concat('.jpg'));
       await uploadBytes(save, blob);
-    }
 
+      var start = new Date().getTime();
+      while (new Date().getTime() < start + 5000);
+
+      let url= await getDownloadURL(ref(storage, "profilepic/profilepics/".concat(auth.currentUser.uid).concat("_200x200.jpg")));
+      return url; 
+    }
     } catch (error) {
       console.log(error);
     }
@@ -247,25 +272,29 @@ const SignUpStepThree = ({navigation, route }) => {
   const loadDataToUser=async()=>{
         try {
         Keyboard.dismiss();
-         await createUserWithEmailAndPassword(auth, email, password);
+        setIsSubmitted(true);
+        navigation.navigate("LoginPage");
+        await createUserWithEmailAndPassword(auth, email, password);
         const user= auth.currentUser;
-     
-
-         await updateProfile(user, {displayName:username })
-        sendEmailVerification(user);
-        await loadImagetoUser(user);
-          await setDoc(doc(db, 'users', user.uid), {
-                  name:name, 
-                  username:username, 
-                  joinDate: Timestamp.fromDate(new Date()),
-                  interests:selectedForums,
-                  bio:bio,
-                  uid:user.uid,
-
-                  });
-          
-         
-          navigation.replace('LoginPage');
+        const uid=  user.uid;
+        signOut(auth);
+       let url= await loadImagetoUser();
+       if(!url){
+        url='';
+      }
+      await updateProfile(user, {displayName:username})
+      await sendEmailVerification(user);
+      await setDoc(doc(db, 'users', uid), {
+                name:name, 
+                username:username, 
+                joinDate: Timestamp.now(),
+                interests:selectedForums,
+                bio:bio,
+                url:" ",
+                likes:0,
+                dislikes:0,
+          });
+        
         } catch (error) {
           
           console.log(error.message);
@@ -288,7 +317,7 @@ const SignUpStepThree = ({navigation, route }) => {
         )}
       </TouchableOpacity>
       <TextInput
-        className="w-64 p-3 mb-4 border border-gray-300 rounded bg-white text-black"
+        className="w-64 p-3 mb-4 border border-gray-300 rounded-2xl bg-white text-black"
         placeholder="Bio"
         value={bio}
         onChangeText={setBio}
@@ -300,7 +329,7 @@ const SignUpStepThree = ({navigation, route }) => {
       <ActivityIndicator size="small" color={'#ffffff'}/>
       :
       <TouchableOpacity
-        className="w-full p-4 rounded bg-white text-lightblue-500 items-center"
+        className="w-full p-4 rounded-2xl bg-white text-lightblue-500 items-center"
         onPress={() => loadDataToUser({navigation})}
       >
         <Text className="text-lightblue-500">Sign Up</Text>
