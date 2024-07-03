@@ -1,13 +1,15 @@
 import React, { useState } from 'react';
-import { View, TextInput, TouchableOpacity, Text, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform } from 'react-native';
 import { FontAwesome } from '@expo/vector-icons';
+import { Timestamp, addDoc, collection } from 'firebase/firestore';
+import { auth, db } from '../api/firebaseConfig';
 
-const CommentInput = ({ onSubmit }) => {
+const CommentInput = ({  itemPath }) => {
   const [comment, setComment] = useState('');
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (comment.trim()) {
-      onSubmit(comment.trim());
+      await addDoc(collection(db, itemPath, "replies"),{text: comment, author: auth.currentUser.displayName, date: Timestamp.now()});
       setComment('');
     }
   };

@@ -1,40 +1,35 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, Alert, ScrollView } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, Alert, ScrollView, ActivityIndicator } from 'react-native';
 import { styled } from 'nativewind';
 import { Timestamp, addDoc, arrayUnion, collection, doc, setDoc } from 'firebase/firestore';
-import { auth, db } from '../api/firebaseConfig';
+import { auth, createPost, db } from '../api/firebaseConfig';
 
 const CreatePost = ({navigation}) => {
   const [forum, setForum] = useState('');
   const [content, setContent] = useState('');
-
+  const [isPosting, setIsPosting]= useState(false);
   const handlePost = async() => {
+    setIsPosting(true);
     if (!forum.trim() || !content.trim()) {  
       Alert.alert('Error', 'Please enter both the forum name and the content.');
     } else {
-      Alert.alert('Success', `Posted to ${forum}`);
-
-      navigation.goBack();
-      const date= Timestamp.now();
-      await addDoc(collection(db, "posts"),{
+      const user= auth.currentUser.displayName;
+      const post={
         text: content,
-        username: auth.currentUser.displayName, 
-        uid:auth.currentUser.uid,
-        date: Timestamp.now(),
+        username: user, 
         forum:forum
-   
-      // }).then((docRef)=>{
-      //   const name= docRef.id;
-      //   setDoc(doc(db, "users" ,auth.currentUser.uid, "posts", name ), {
-      //     date: date
-      //   });
-      //   setDoc(doc(db, "forums", forum, "posts", name),{
-      //     date:date
-      //   });
-      });
+      };
+      const response=await createPost(post);
+      Alert.alert(response.header, response.message);
+
+      
+      if(response.header==='Success'){
+          navigation.goBack();
+      }
       setForum('');  // Clear the forum input after posting
       setContent('');  // Clear the content input after posting
     }
+    setIsPosting(false);
   };
 
   return (
@@ -48,7 +43,7 @@ const CreatePost = ({navigation}) => {
             placeholder="Forum Name"
             value={forum}
             hitSlop={20}
-            onChangeText={(text) => setForum(text.replace(/ /g, ''))}  // Remove spaces from forum name
+            onChangeText={(text) => setForum(text.replace(/ /g, '_'))}  // Remove spaces from forum name
           />
         </View>
 
@@ -64,11 +59,11 @@ const CreatePost = ({navigation}) => {
           />
         </View>
 
-        <TouchableOpacity
+       {!isPosting?( <TouchableOpacity
           className="bg-white p-4 rounded-lg items-center"
           onPress={handlePost}>
           <Text className="text-lightblue-500 font-bold">Post</Text>
-        </TouchableOpacity>
+        </TouchableOpacity>):(<ActivityIndicator size="small" color={'#ffffff'} />)}
       </View>
     </ScrollView>
   );
