@@ -1,8 +1,25 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, Pressable, TouchableOpacity, ActivityIndicator, KeyboardAvoidingView, Platform, Keyboard, Alert } from 'react-native';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
-import { auth } from '../api/firebaseConfig';
-import { signInWithEmailAndPassword } from 'firebase/auth';
+import { auth, db, storage } from '../api/firebaseConfig';
+import { signInWithEmailAndPassword, signOut, updateCurrentUser, updateProfile } from 'firebase/auth';
+import { getDownloadURL, ref } from 'firebase/storage';
+import { doc, updateDoc } from 'firebase/firestore';
+
+
+const setURLForProfile=async(user)=>{
+  try {
+    let url= await getDownloadURL(ref(storage, "profilepic/profilepics/".concat(user.displayName).concat("_200x200.jpg")));
+    if(!url){
+      url='assets/profile.png';
+    }
+    updateDoc(doc(db,'users', user.displayName), {url:url});
+    updateProfile(user,{photoURL:url});
+
+  } catch (error) {
+    console.log(error.message);
+  }
+}
 
 const LoginPage = ({ navigation }) => {
   const [username, setUsername] = useState('');
@@ -15,10 +32,16 @@ const LoginPage = ({ navigation }) => {
 
     try {
       if (username && password) {
-        await signInWithEmailAndPassword(auth, username, password).then(user => {
-          user.user.reload();
-          if (!user.user.emailVerified) {
+        await signInWithEmailAndPassword(auth, username, password).then(userCredentials => {
+          userCredentials.user.reload();
+          if (!userCredentials.user.emailVerified) {
+            //signOut(auth); //In any decline case we will immidiately sign user out
             Alert.alert("Action Required", "Please Verify Email before logging on");
+          }
+          else if(!userCredentials.user.photoURL){
+              console.log("happened");
+              const user= userCredentials.user
+              setURLForProfile(user);
           }
           setUsername('');
           setPassword('');
@@ -26,6 +49,8 @@ const LoginPage = ({ navigation }) => {
       } else {
         Alert.alert('Error', 'You left one or more fields blank');
       }
+      setPressedLogin(false); // Hide the spinner
+
     } catch (e) {
       setPressedLogin(false); // Hide the spinner
       let msg = e.message;
@@ -77,12 +102,12 @@ const LoginPage = ({ navigation }) => {
             <Text className="text-lightblue-500 font-bold">Login</Text>
           </TouchableOpacity>
         }
-        <Pressable className='mt-10 font-semibold' hitSlop={30} onPress={() => navigation.navigate('SignUpPage')}>
+        <Pressable className='mt-10 mb-5 font-semibold' hitSlop={20} onPress={() => navigation.navigate('SignUpPage')}>
           <Text className='font-bold'> Don't Have an Account? Sign Up Now!</Text>
         </Pressable>
 
         {/* Forgot Password Link */}
-        <Pressable className='mt-4 font-semibold' hitSlop={30} onPress={() => navigation.navigate('ForgotPassword')}>
+        <Pressable className='mt-10 font-semibold' hitSlop={20} onPress={() => navigation.navigate('ForgotPassword')}>
           <Text className='font-bold text-blackraisin-100'>Forgot Password?</Text>
         </Pressable>
       </View>

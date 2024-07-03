@@ -1,86 +1,117 @@
 import React, { useEffect, useState } from 'react';
-import { View, SafeAreaView, ScrollView, Text, FlatList, RefreshControl, TouchableOpacity, Alert, Pressable} from 'react-native';
+import { View, SafeAreaView, FlatList, RefreshControl} from 'react-native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import ProfilePage from './Account';
-import { app, auth, db } from '../api/firebaseConfig';
+import { auth, db  } from '../api/firebaseConfig';
  import Post from '../components/Post';
 import CreatePost from './CreatePost';
-import FontAwesome from "@expo/vector-icons/FontAwesome";
-import { collection, getDocs, limit, orderBy, query, where } from 'firebase/firestore';
 import { AntDesign } from '@expo/vector-icons';
-import { getAuth } from 'firebase/auth';
-import { TextInput } from 'react-native-gesture-handler';
-import CommentList from '../components/Comment';
-import CommentInput from '../components/CommentInput';
 import { FullPostScreen } from './FullPostScreen';
+import { fetchForumData, fetchLikeDislikeCounts } from '../api/DocumentFetcher';
+import { createDrawerNavigator } from '@react-navigation/drawer';
+import { collection, getDocs, limit, orderBy, query } from 'firebase/firestore';
+import { SearchStackPage } from './SearchPage';
 
 
 
 const Stack = createStackNavigator();
 const Tab= createBottomTabNavigator();
 
-const posts=[];
+const getRecommendedPosts = async ({setPosts}) => {
+  try {
+    const postQuery = query(collection(db, "posts"), orderBy("date", 'desc'), limit(15));
+    const querySnapshot = await getDocs(postQuery);
+    const temp = [];
 
-
-
-const getRecommendedPosts=async()=>{
-  //TODO create complex query to get posts from different interest forums
-  const postQuery= query(collection(db, "posts"),orderBy("date",  'desc'), limit(15));
-  const querySnapshot= await getDocs(postQuery);
-  posts.length=0;
-  querySnapshot.forEach((doc)=>{
-    let newData= {...doc.data(), "id":doc.id}; //TODO weigh options with this function
-    posts.push(newData);
-  });
-}
-
-
-
-const Home = () => {
-  // const [currentForum, setCurrentForum] = React.useState('Home');
-
-  // useEffect(()=>{
-  //   getRecommendedPosts().then(()=>console.log("done"));
-  // },[]);
-
-  useEffect(()=>{
-    const resolved=async()=>{
-      await getRecommendedPosts();
+    for (const document of querySnapshot.docs) {
+      const items = { ...document.data(), "id": document.id };
+      temp.push(items);
     }
-    resolved();
-  });
+    setPosts(temp);
+  } catch (error) {
+    console.error('Error fetching recommended posts:', error);
+  }
+};
+
+
+const Home = ({route}) => {
+  const {posts}= route.params;
+
   return (
     <Tab.Navigator
-      id='2'
-      initialRouteName={"Home"}
-      screenOptions={{ headerShown:false, tabBarShowLabel:false ,tabBarStyle:{borderCurve:'circular', bottom:'auto'}, tabBarActiveTintColor: '#4DFFF3', tabBarInactiveTintColor: '#1D1E2C'}}>
+    id='2'
+    initialRouteName={"Home"}
+    screenOptions={{
+      headerShown: false,
+      tabBarShowLabel: false,
+      tabBarStyle: { borderCurve: 'circular', bottom: 'auto' },
+      tabBarActiveTintColor: '#4DFFF3',
+      tabBarInactiveTintColor: '#1D1E2C'
+    }}
+  >
+    <Tab.Screen
+      name='Home'
+      component={ForumPage}
+      options={{
+        tabBarIcon: ({ focused }) => (
+          <MaterialIcons name="home" size={24} color={!focused ? '#1D1E2C' : '#4DFFF3'} />
+        )
+      }}
+      initialParams={{ posts }}
+    />
 
-      <Tab.Screen name='Home' component={ForumPage} options={{ tabBarIcon:({focused})=>(<MaterialIcons name="home" size={24} color= {!focused?'#1D1E2C':'#4DFFF3'} />) }} />    
-      <Tab.Screen name= 'Create Post' component={CreatePost}  options={{ tabBarIcon:({focused})=>(<AntDesign name="pluscircleo" size={24} color= {!focused?'#1D1E2C':'#4DFFF3'} />) }} listeners={{tabPress:(e)=>{
-          if(!auth.currentUser.emailVerified){
-            Alert.alert("Error", "Please Verify Email Before Making Posts");
-            return e.preventDefault();
-          }
-      }}} /> 
-      <Tab.Screen name='Account' component={ProfilePage} initialParams={{uid:auth.currentUser.uid, username: auth.currentUser.displayName}} options={{tabBarIcon:({focused})=>(<MaterialIcons name="account-circle" size={24} color= {!focused?'#1D1E2C':'#4DFFF3'} />) }} />
-    </Tab.Navigator>
+    <Tab.Screen
+      name='Create Post'
+      component={CreatePost}
+      options={{
+        tabBarIcon: ({ focused }) => (
+          <AntDesign name="pluscircleo" size={24} color={!focused ? '#1D1E2C' : '#4DFFF3'} />
+        )
+      }}
+    />
+
+    <Tab.Screen
+      name='Search'
+      component={SearchStackPage}
+      options={{
+        tabBarIcon: ({ focused }) => (
+          <MaterialIcons name="search" size={24} color={!focused ? '#1D1E2C' : '#4DFFF3'} />
+        )
+      }}
+    />
+
+    <Tab.Screen
+      name='Account'
+      component={ProfilePage}
+      initialParams={{ username: auth.currentUser.displayName }}
+      options={{
+        tabBarIcon: ({ focused }) => (
+          <MaterialIcons name="account-circle" size={24} color={!focused ? '#1D1E2C' : '#4DFFF3'} />
+        )
+      }}
+    />
+  </Tab.Navigator>
   );
 };
 
-const PostsScreen = ({ navigation }) => {
+const PostsScreen = ({ navigation}) => {
+  
+  const [refresh, setRefresh] = useState(false);
+  const [posts, setPosts]= useState([]);
 
-  const [refresh, setRefresh] = React.useState(false);
 
+
+  useEffect(()=>{
+    getRecommendedPosts({setPosts});
+  },[]);
 
  
   const refreshHandler = () => {
     setRefresh(true);
-    getRecommendedPosts().then(()=>setRefresh(false));
+    getRecommendedPosts({setPosts}).then(()=>setRefresh(false));
   };
-
-
 
   return (
     <SafeAreaView className="flex-1 bg-lightblue-500 p-5">
@@ -89,7 +120,6 @@ const PostsScreen = ({ navigation }) => {
         data={posts}
         onEndReachedThreshold={0.9}
         //onEndReached={()=>Alert.alert("you down there")} //TODO fetch more posts data from older posts
-       // ListEmptyComponent={<Post item={{ user: 'No posts yet'}} />}
         renderItem={({ item }) => <Post  item={item} navigation={navigation}/>}
         keyExtractor={(item, index) => index.toString()}
         refreshControl={<RefreshControl refreshing={refresh} onRefresh={refreshHandler} />}
@@ -99,22 +129,45 @@ const PostsScreen = ({ navigation }) => {
 };
 
 
+const newForumPage=({route})=>{
+  const [forums, setForums]= useState([]);
+  useEffect(() => {
+    const getForums = async () => {
+      const forumList = await fetchForumData();
+      setForums(forumList);
+    };
 
+    getForums();
+  }, []);
 
+ const Drawer = createDrawerNavigator();
+  return (
+      <Drawer.Navigator >
+        <Drawer.Screen name='test'></Drawer.Screen>
+        {/* {forums.map(forum => (
+          <Drawer.Screen
+            key={forum.id}
+            name={forum?.name} // Forum name as the route name
+            component={ForumPage} // The component to render
+            initialParams={{ forumId: forum?.id }} // Pass the forum ID as a parameter
+          />
+        ))} */}
+      </Drawer.Navigator>
+  );
+};
 
-
-const ForumPage=()=>{
-
+const ForumPage=({route})=>{
+  const {posts}= route.params;
+  console.log("forum", posts);
  return(
   <View className="flex-1 bg-gray-100">
     <Stack.Navigator initialRouteName={"Main"}>
-      <Stack.Screen name="Main" component={PostsScreen} options={{headerShown:false}}/>
+      <Stack.Screen name="Main" component={PostsScreen} options={{headerShown:false}} initialParams={{posts:posts}}/>
       <Stack.Screen name="Post" component={FullPostScreen} options={{headerShown:false}}  />
-      {/* <Stack.Screen name="Create Post" component={CreatePost} options={{headerShown:false}}/> */}
       <Stack.Screen name='Account' component={ProfilePage} options={{headerShown:false}}/>
     </Stack.Navigator>
 </View>
  )
-}
+};
 
 export default Home;

@@ -1,9 +1,12 @@
 import React, { PureComponent } from 'react';
-import { TouchableOpacity, Text, View, Pressable, Image } from 'react-native';
-import { FontAwesome } from '@expo/vector-icons';
-import { Timestamp, collection, getCountFromServer, deleteDoc, doc, getDoc, setDoc } from 'firebase/firestore';
-import { auth, db } from '../api/firebaseConfig';
+import { TouchableOpacity, Text, View, Pressable, Modal, TouchableWithoutFeedback, TextInput, Alert } from 'react-native';
+import { FontAwesome, Entypo } from '@expo/vector-icons';
+import { Timestamp, getDoc, doc, setDoc, deleteDoc } from 'firebase/firestore';
+import { auth, db, deletePost } from '../api/firebaseConfig';
+import { updateLikesInFirebase, updateDislikesInFirebase } from '../api/DocumentFetcher'; // Import the helper functions
 import CommentInput from './CommentInput';
+import { fetchLikeDislikeCounts } from '../api/DocumentFetcher';
+import BiasBar from './BiasBar';
 
 class Post extends PureComponent {
   constructor(props) {
@@ -11,30 +14,17 @@ class Post extends PureComponent {
     this.state = {
       liked: false,
       disliked: false,
-      numLikes: 0,
-      numDislikes: 0
+      numLikes: props.item.likeCount,
+      numDislikes: props.item.dislikeCount,
+      modalVisible: false,
+      editModalVisible: false,
+      editText: props.item.text,
     };
   }
 
-  componentDidMount() {
-    this.fetchInitialData();
-  }
-
-  // Fetch the liked status from Firestore
-  getLikedStatus = async () => {
-    try {
-      const docSnapshot = await getDoc(doc(db, 'posts', this.props.item.id, 'likes', auth.currentUser.uid));
-      return docSnapshot.exists();
-    } catch (error) {
-      console.error(error.message);
-      return false;
-    }
-  };
-
-  // Fetch the disliked status from Firestore
   getDislikedStatus = async () => {
     try {
-      const docSnapshot = await getDoc(doc(db, 'posts', this.props.item.id, 'dislikes', auth.currentUser.uid));
+      const docSnapshot = await getDoc(doc(db, 'posts', this.props.item.id, 'dislikes', auth.currentUser.displayName));
       return docSnapshot.exists();
     } catch (error) {
       console.error(error.message);
@@ -42,108 +32,182 @@ class Post extends PureComponent {
     }
   };
 
-  // Fetch number of likes from Firestore
-  getNumLikes = async () => {
+  getLikedStatus = async () => {
     try {
-      const coll = collection(db, 'posts', this.props.item.id, 'likes');
-      const snapshot = await getCountFromServer(coll);
-      return snapshot.data().count;
+      const docSnapshot = await getDoc(doc(db, 'posts', this.props.item.id, 'likes', auth.currentUser.displayName));
+      return docSnapshot.exists();
     } catch (error) {
       console.error(error.message);
-      return 0;
+      return false;
     }
   };
 
-  // Fetch number of dislikes from Firestore
-  getNumDislikes = async () => {
+  async componentDidMount() {
     try {
-      const coll = collection(db, 'posts', this.props.item.id, 'dislikes');
-      const snapshot = await getCountFromServer(coll);
-      return snapshot.data().count;
+      if (this.props?.fullScreen) {
+        this.setState({ liked: this.props.liked, disliked: this.props.disliked });
+      } else {
+        const liked = await this.getLikedStatus();
+        const disliked = await this.getDislikedStatus();
+        this.setState({ liked, disliked });
+      }
     } catch (error) {
-      console.error(error.message);
-      return 0;
+      console.error('Error fetching initial like/dislike status:', error);
     }
-  };
+  }
 
-  // Fetch initial like/dislike status and counts
-  fetchInitialData = async () => {
-    const likedStatus = await this.getLikedStatus();
-    const dislikedStatus = await this.getDislikedStatus();
-    const likesCount = await this.getNumLikes();
-    const dislikesCount = await this.getNumDislikes();
-
-    this.setState({
-      liked: likedStatus,
-      disliked: dislikedStatus,
-      numLikes: likesCount,
-      numDislikes: dislikesCount
-    });
-  };
+  async componentDidUpdate(prevProps, prevState) {
+    if (this.state.liked !== prevState.liked || this.state.disliked !== prevState.disliked) {
+      try {
+        const { likes, dislikes } = await fetchLikeDislikeCounts(this.props.item.id);
+        this.setState({
+          numLikes: likes,
+          numDislikes: dislikes,
+        });
+      } catch (error) {
+        console.error('Error updating like/dislike counts:', error);
+      }
+    }
+  }
 
   // Toggle like status
-  toggleLike = async () => {
-    const { liked, disliked, numLikes, numDislikes } = this.state;
-    const { item } = this.props;
+  toggleLike = () => {
+    const { liked, disliked, numLikes } = this.state;
 
-    try {
-      if (liked) {
-        await deleteDoc(doc(db, 'posts', item.id, 'likes', auth.currentUser.uid));
-        this.setState({ numLikes: numLikes - 1 });
-      } else {
-        await setDoc(doc(db, 'posts', item.id, 'likes', auth.currentUser.uid), { time: Timestamp.now() });
-        this.setState({ numLikes: numLikes + 1 });
+    if (liked) {
+      this.setState({ liked: false, numLikes: numLikes - 1 }, () => {
+        updateLikesInFirebase({ liked: false, id: this.props.item.id, displayName: auth.currentUser.displayName });
+      });
+    } else {
+      this.setState({ liked: true, numLikes: numLikes + 1 }, () => {
+        updateLikesInFirebase({ liked: true, id: this.props.item.id, displayName: auth.currentUser.displayName });
+      });
 
-        if (disliked) {
-          await deleteDoc(doc(db, 'posts', item.id, 'dislikes', auth.currentUser.uid));
-          this.setState({ disliked: false, numDislikes: numDislikes - 1 });
-        }
+      if (disliked) {
+        this.setState({ disliked: false, numDislikes: this.state.numDislikes - 1 }, () => {
+          updateDislikesInFirebase({ disliked: false, id: this.props.item.id, displayName: auth.currentUser.displayName });
+        });
       }
-
-      this.setState({ liked: !liked });
-    } catch (error) {
-      console.error('Error updating like status:', error);
     }
   };
 
   // Toggle dislike status
-  toggleDislike = async () => {
-    const { liked, disliked, numLikes, numDislikes } = this.state;
-    const { item } = this.props;
+  toggleDislike = () => {
+    const { liked, disliked, numDislikes } = this.state;
 
-    try {
-      if (disliked) {
-        await deleteDoc(doc(db, 'posts', item.id, 'dislikes', auth.currentUser.uid));
-        this.setState({ numDislikes: numDislikes - 1 });
-      } else {
-        await setDoc(doc(db, 'posts', item.id, 'dislikes', auth.currentUser.uid), { time: Timestamp.now() });
-        this.setState({ numDislikes: numDislikes + 1 });
+    if (disliked) {
+      this.setState({ disliked: false, numDislikes: numDislikes - 1 }, () => {
+        updateDislikesInFirebase({ disliked: false, id: this.props.item.id, displayName: auth.currentUser.displayName });
+      });
+    } else {
+      this.setState({ disliked: true, numDislikes: numDislikes + 1 }, () => {
+        updateDislikesInFirebase({ disliked: true, id: this.props.item.id, displayName: auth.currentUser.displayName });
+      });
 
-        if (liked) {
-          await deleteDoc(doc(db, 'posts', item.id, 'likes', auth.currentUser.uid));
-          this.setState({ liked: false, numLikes: numLikes - 1 });
-        }
+      if (liked) {
+        this.setState({ liked: false, numLikes: this.state.numLikes - 1 }, () => {
+          updateLikesInFirebase({ liked: false, id: this.props.item.id, displayName: auth.currentUser.displayName });
+        });
       }
-
-      this.setState({ disliked: !disliked });
-    } catch (error) {
-      console.error('Error updating dislike status:', error);
     }
   };
 
+  // Report Post
+  reportPost = async () => {
+    this.setState({ modalVisible: false });
+    setDoc(doc(db, "reports", this.props.item.id.concat('-', auth.currentUser.displayName)), { reasonForReport: "testing waters for now" });
+  };
+
+  // Open Edit Modal
+  openEditModal = () => {
+    this.setState({ modalVisible: false, editModalVisible: true });
+  };
+
+  // Handle text change in edit modal
+  handleEditChange = (text) => {
+    this.setState({ editText: text });
+  };
+
+  // Save edited post to Firestore
+  saveEdit = async () => {
+    const { editText } = this.state;
+    const { item } = this.props;
+
+    // Ensure editText is not empty
+    if (!editText.trim()) {
+      Alert.alert('Validation Error', 'Post content cannot be empty.');
+      return;
+    }
+
+    try {
+      // Update the post content in Firestore
+      await updateDoc(doc(db, 'posts', item.id), {
+        text: editText,
+        editedAt: Timestamp.now(), // Add an edited timestamp
+      });
+
+      // Close the edit modal
+      this.setState({ editModalVisible: false });
+
+      // Optional: Alert the user
+      Alert.alert('Post Updated', 'Your post has been updated successfully.');
+    } catch (error) {
+      console.error('Error updating post:', error);
+      Alert.alert('Error', 'There was an error updating your post. Please try again.');
+    }
+  };
+
+  confirmDelete = async () => {
+    Alert.alert(
+      'Confirm Deletion',
+      'Are you sure you want to delete this post?',
+      [
+        {
+          text: 'Cancel',
+          style: 'cancel',
+        },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await deletePost(this.props.item.id);
+              this.setState({modalVisible:false})
+            } catch (error) {
+              console.error('Error deleting post:', error);
+              Alert.alert('Error', 'There was an error deleting your post. Please try again.');
+            }
+          },
+        },
+      ],
+      { cancelable: false }
+    );
+  };
+  
+
   render() {
     const { item, navigation, fromAccount } = this.props;
-    const { liked, disliked, numLikes, numDislikes } = this.state;
+    const { liked, disliked, numLikes, numDislikes, modalVisible, editModalVisible, editText } = this.state;
     const uid = item?.uid;
+    const isPostOwner = auth.currentUser && item.username === auth.currentUser.displayName;
 
     const navTo = () => (fromAccount ? 'Full-Post' : 'Post');
 
     return (
       <TouchableOpacity
+        disabled={this.props?.disabled}
         className="m-2 p-4 bg-white rounded-lg shadow-lg"
-        onPress={() => navigation.navigate(navTo(), { item, uid, fullScreen: true })}
+        onPress={() => navigation.navigate(navTo(), { item, liked, disliked, uid, fullScreen: true })}
         activeOpacity={0.7}
       >
+        {this.props.item.biasEvaluation ?
+          (<BiasBar biasEvaluation={this.props.item.biasEvaluation} />)
+          : null}
+        <View className="absolute top-2 right-2 flex-row items-center">
+          <TouchableOpacity onPress={() => this.setState({ modalVisible: true })}>
+            <Entypo name="dots-three-horizontal" size={24} color="gray" />
+          </TouchableOpacity>
+        </View>
         {!fromAccount && (
           <View className="flex-shrink-0">
             <Pressable
@@ -155,35 +219,92 @@ class Post extends PureComponent {
             </Pressable>
           </View>
         )}
-        <Text className="absolute top-2 right-5 text-base font-bold text-black">#{item?.forum}</Text>
+        <Text className="absolute top-3 right-11 text-base font-bold text-black">#{item?.forum}</Text>
         <Text className="text-base text-gray-800 pb-2 mt-5">{item?.text}</Text>
         <Text className="text-sm text-gray-500 self-end">
           {new Date(item?.date?.seconds * 1000).toLocaleDateString()}
         </Text>
 
-        {/* Uncomment the following block to display the article link (if applicable).
-        {item?.article && (
-          <TouchableOpacity
-            className="mt-2 bg-gray-200 rounded-lg overflow-hidden"
-            onPress={() => navigation.navigate('Article', { articleUrl: item.article.articleUrl })}
-          >
-            <Image source={{ uri: item.article.imageUrl }} className="w-full h-40" />
-            <Text className="p-2 font-bold text-base">{item.article.title}</Text>
-          </TouchableOpacity>
-        )} */}
-
         <View className="flex-row items-center mt-2">
-          <TouchableOpacity onPress={this.toggleLike} className="flex-row items-center">
+          <TouchableOpacity hitSlop={25} onPress={this.toggleLike} className="flex-row items-center mr-3">
             <FontAwesome name="thumbs-up" size={20} color={liked ? '#4CAF50' : 'gray'} />
             <Text className={`ml-1 text-sm ${liked ? 'text-green-500' : 'text-gray-500'}`}>{numLikes}</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity onPress={this.toggleDislike} className="ml-4 flex-row items-center">
+          <TouchableOpacity hitSlop={25} onPress={this.toggleDislike} className="flex-row items-center">
             <FontAwesome name="thumbs-down" size={20} color={disliked ? '#F44336' : 'gray'} />
             <Text className={`ml-1 text-sm ${disliked ? 'text-red-500' : 'text-gray-500'}`}>{numDislikes}</Text>
           </TouchableOpacity>
         </View>
-        <CommentInput />
+
+        <CommentInput itemPath={item.id.concat()}/>
+
+        <Modal
+          visible={modalVisible}
+          transparent={true}
+          animationType="slide"
+          onRequestClose={() => this.setState({ modalVisible: false })}
+        >
+          <TouchableWithoutFeedback onPress={() => this.setState({ modalVisible: false })}>
+            <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.3)' }}>
+              <View className="bg-white p-4 rounded-lg w-11/12 mb-2">
+                {/* Edit Option for Post Owner */}
+                {isPostOwner && (
+                  <View>
+                  <TouchableOpacity
+                    className="p-2 "
+                    onPress={this.openEditModal}
+                  >
+                    <Text className="text-blue-500 text-lg">Edit Post</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    className="p-2 mt-2"
+                    onPress={this.confirmDelete}
+                  >
+                    <Text className="text-blue-500 text-lg">Delete Post</Text>
+                  </TouchableOpacity>
+                  </View>
+                )}
+                <TouchableOpacity
+                  className="p-2 mt-2"
+                  onPress={this.reportPost}
+                >
+                  <Text className="text-red-500 text-lg">Report Post</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  className="p-2 mt-2"
+                  onPress={() => this.setState({ modalVisible: false })}
+                >
+                  <Text className="text-gray-600 text-lg">Cancel</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </TouchableWithoutFeedback>
+        </Modal>
+
+        <Modal
+          transparent={true}
+          visible={editModalVisible}
+          onRequestClose={() => this.setState({ editModalVisible: false })}
+        >
+          <TouchableWithoutFeedback onPress={() => this.setState({ editModalVisible: false })}>
+            <View className="flex-1 justify-center items-center bg-transparent bg-opacity-50">
+              <View className="w-64 bg-white rounded-lg p-4">
+                <TextInput
+                  value={editText}
+                  onChangeText={this.handleEditChange}
+                  placeholder="Edit your post"
+                  className="border border-gray-300 rounded-md p-2 mb-4"
+                  multiline={true}
+                  numberOfLines={4}
+                />
+                <TouchableOpacity onPress={this.saveEdit} className="bg-blue-500 rounded-md p-2">
+                  <Text className="text-center text-white font-medium">Save</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </TouchableWithoutFeedback>
+        </Modal>
       </TouchableOpacity>
     );
   }

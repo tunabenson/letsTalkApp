@@ -3,9 +3,9 @@ import { createStackNavigator } from '@react-navigation/stack';
 import { View, Text, TextInput, TouchableOpacity, Alert, FlatList, Pressable, KeyboardAvoidingView, Platform, Keyboard, ActivityIndicator, Image, Linking} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import  FontAwesome from '@expo/vector-icons/FontAwesome';
-import { db,auth, storage } from '../api/firebaseConfig';
+import { db,auth, storage, usersRef } from '../api/firebaseConfig';
 import { createUserWithEmailAndPassword, fetchSignInMethodsForEmail, sendEmailVerification, signInWithCredential, signOut, updateProfile } from 'firebase/auth';
-import { setDoc, Timestamp, doc, query, where, getDocs, collection, limit} from 'firebase/firestore';
+import { setDoc, Timestamp, doc, query, where, getDocs, collection, limit, getDoc} from 'firebase/firestore';
 import  * as ImagePicker from 'expo-image-picker'
 import { getDownloadURL, ref, uploadBytes } from 'firebase/storage';
 import * as FileSystem from 'expo-file-system';
@@ -26,18 +26,19 @@ const SignUpStepOne = ({navigation}) => {
 
 
   const checkInputsValid=async()=>{
-    const userQuery = query(collection(db, "users"), where("username", "==", username), limit(1));
-    const querySnapshot = await getDocs(userQuery);   
-   if(!querySnapshot.empty){
+    setUsername(username.toLowerCase())
+    const userCheck = doc(db, "users", username);
+    const querySnapshot = await getDoc(userCheck);
+   if(querySnapshot.exists()){
         Alert.alert('Error', "username Taken");
         return false;
     };
-    const emailExists= await fetchSignInMethodsForEmail(auth, "habracadabra2006@gmail.com");
-    console.log(emailExists)
-    if(emailExists.length>0){
-      Alert.alert('Error', 'Email is already in use');
-      return false;
-    }
+    // const emailExists= await fetchSignInMethodsForEmail(auth, );
+    // console.log(emailExists)
+    // if(emailExists.length>0){
+    //   Alert.alert('Error', 'Email is already in use');
+    //   return false;
+    // }
     return true;
   }
   
@@ -226,6 +227,7 @@ const SignUpStepThree = ({navigation, route}) => {
   const [bio, setBio] = useState('');
   const [profilePicture, setProfilePicture] = useState();
   const [isSubmitted, setIsSubmitted]= useState(false);
+
   const selectImage = async () => {
     let response = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
@@ -255,14 +257,14 @@ const SignUpStepThree = ({navigation, route}) => {
         xhr.open('GET', uri);
         xhr.send(null);
       })
-      const save=ref(storage, 'profilepic/'.concat(auth.currentUser.uid).concat('.jpg'));
+      const save=ref(storage, 'profilepic/'.concat(auth.currentUser.displayName).concat('.jpg'));
       await uploadBytes(save, blob);
 
-      var start = new Date().getTime();
-      while (new Date().getTime() < start + 5000);
+      // var start = new Date().getTime();
+      // while (new Date().getTime() < start + 5000);
 
-      let url= await getDownloadURL(ref(storage, "profilepic/profilepics/".concat(auth.currentUser.uid).concat("_200x200.jpg")));
-      return url; 
+      // let url= await getDownloadURL(ref(storage, "profilepic/profilepics/".concat(auth.currentUser.uid).concat("_200x200.jpg")));
+      // return url; 
     }
     } catch (error) {
       console.log(error);
@@ -277,16 +279,13 @@ const SignUpStepThree = ({navigation, route}) => {
         await createUserWithEmailAndPassword(auth, email, password);
         const user= auth.currentUser;
         const uid=  user.uid;
-        signOut(auth);
-       let url= await loadImagetoUser();
-       if(!url){
-        url='';
-      }
-      await updateProfile(user, {displayName:username})
-      await sendEmailVerification(user);
-      await setDoc(doc(db, 'users', uid), {
+        await updateProfile(user, {displayName:username})
+        await loadImagetoUser();
+       
+    
+      await setDoc(doc(db, 'users', user.displayName), {
                 name:name, 
-                username:username, 
+                //username:username, 
                 joinDate: Timestamp.now(),
                 interests:selectedForums,
                 bio:bio,
@@ -294,7 +293,7 @@ const SignUpStepThree = ({navigation, route}) => {
                 likes:0,
                 dislikes:0,
           });
-        
+          signOut(auth);
         } catch (error) {
           
           console.log(error.message);
