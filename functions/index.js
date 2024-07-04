@@ -137,44 +137,6 @@ exports.sendWelcomeEmail = functions.auth.user().onCreate(async (user) => {
 });
 
 
-// File: functions/index.js
-
-
-// exports.processBiasEvaluation = functions.firestore
-//     .document('posts/{docId}')
-//     .onUpdate(async(change, context) => {
-//         const newValue = change.after.data();
-//         const docRef = change.after.ref;
-
-//         // Check if BiasEvaluation exists
-//         if (newValue.BiasEvaluation) {
-//             const biasEvaluation = newValue.BiasEvaluation;
-
-//             // Assuming biasEvaluation is a string like "left:x, center:y, right:z"
-//             const biasMap = {};
-//             biasEvaluation.split(', ').forEach(item => {
-//                 const [key, value] = item.split(':');
-//                 biasMap[key] = parseFloat(value);
-//             });
-            
-//             // Prepare update object
-//             const updateData = {
-//                 BiasMap: biasMap
-                
-//             };
-
-//             // Remove original BiasEvaluation and other fields
-//             const fieldsToRemove = ['BiasEvaluation', 'safetyMetadata', 'status'];
-//             fieldsToRemove.forEach(field => {
-//                 updateData[field] = admin.firestore.FieldValue.delete();
-//             });
-
-//             // Update the document
-//             await docRef.update(updateData);
-//         } else {
-//             return null;
-//         }
-//     });
 
     exports.addLikeOnChange = functions.firestore
         .document('posts/{postId}/likes/{likesId}')
@@ -239,10 +201,13 @@ const { TextServiceClient } = require('@google-ai/generativelanguage');
 const { GoogleAuth } = require('google-auth-library');
 const { Timestamp } = require('firebase-admin/firestore');
 
-const client = new TextServiceClient({
+const palmClient = new TextServiceClient({
   authClient: new GoogleAuth().fromAPIKey(functions.config().palm.api_key),
 });
 
+
+//TODO: reconsider the use of this, maybe do it with postCreation request? 
+//PROs: less calls, CONS: longer wait time before response, no edit check for bias
 exports.BiasEvaluation= functions.firestore
   .document('posts/{postId}')
   .onWrite(async (change, context) => {
@@ -261,7 +226,7 @@ exports.BiasEvaluation= functions.firestore
 
     try {
       // Call the PaLM API
-      const [response] = await client.generateText({
+      const [response] = await palmClient.generateText({
 
         model:'models/text-bison-001', // Use your specific model
         prompt: {
@@ -294,4 +259,56 @@ exports.BiasEvaluation= functions.firestore
       console.error('Error generating text with PaLM API:', error);
     }
   });
+
+
+const algoliasearch = require('algoliasearch');
+const ALGOLIA_APP_ID = "GQZGLJWQVJ";
+const algoliaClient = algoliasearch(ALGOLIA_APP_ID, functions.config().algolia.admin_key);
+const index = algoliaClient.initIndex('usernames');
+
+exports.addUserToAlgolia = functions.firestore.document('users/{userId}').onCreate(async (snap, context) => {
+  const userData = snap.data();
+  
+  if (!userData.username) {
+    console.error('No username field found in the new document.');
+    return;
+  }
+  
+  const algoliaObject = {
+    objectID: context.params.userId,
+    username: userData.username
+  };
+
+  try {
+    await index.saveObject(algoliaObject);
+    console.log('Username added to Algolia:', algoliaObject);
+  } catch (error) {
+    console.error('Error adding username to Algolia:', error);
+  }
+});
+
+
+
+exports.searchUsernames = functions.https.onCall(async (data, context) => {
+  // Check if the query parameter is provided
+  const query = data.q;
+
+  if (!query) {
+    throw new functions.https.HttpsError('invalid-argument', 'Query parameter "q" is required.');
+  }
+
+  try {
+    // Perform the search on the Algolia index
+    const result = await index.search(query, {
+      hitsPerPage: 10,
+      attributesToRetrieve: ['objectID', 'username'] // Retrieve both objectID and username
+    });
+
+    // Return the search results
+    return result.hits;
+  } catch (error) {
+    console.error('Error searching usernames:', error);
+    throw new functions.https.HttpsError('internal', 'Error searching usernames.', error.message);
+  }
+});
 

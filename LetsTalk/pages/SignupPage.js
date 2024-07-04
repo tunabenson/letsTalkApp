@@ -7,9 +7,8 @@ import { db,auth, storage, usersRef } from '../api/firebaseConfig';
 import { createUserWithEmailAndPassword, fetchSignInMethodsForEmail, sendEmailVerification, signInWithCredential, signOut, updateProfile } from 'firebase/auth';
 import { setDoc, Timestamp, doc, query, where, getDocs, collection, limit, getDoc} from 'firebase/firestore';
 import  * as ImagePicker from 'expo-image-picker'
-import { getDownloadURL, ref, uploadBytes } from 'firebase/storage';
+import {  ref, uploadBytes } from 'firebase/storage';
 import * as FileSystem from 'expo-file-system';
-import { endAsyncEvent } from 'react-native/Libraries/Performance/Systrace';
 
 
 
