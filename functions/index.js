@@ -102,7 +102,7 @@ exports.sendWelcomeEmail = functions.auth.user().onCreate(async (user) => {
 
     // Create email content
     const mailOptions = {
-      from: 'katz.ofek23@gmail.com',
+      from: 'filler',
       to: email,
       subject: 'Glad to see you here!',
       html: `
@@ -123,8 +123,8 @@ exports.sendWelcomeEmail = functions.auth.user().onCreate(async (user) => {
     
       auth: {
         
-        user: 'katz.ofek23@gmail.com',
-        pass: 'Benson1029',
+        user: 'filler',
+        pass: 'filler',
       },
     });
 
