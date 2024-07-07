@@ -5,9 +5,11 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "userInterfaceStyle": "light",
+    "icon":"./assets/icon.png",
     "splash": {
-      "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
+      "image": "./assets/splash.png",
+      "resizeMode": "cover",
+      "backgroundColor": "##1E1D1D"
     },
     "ios": {
       "supportsTablet": true
@@ -15,7 +17,7 @@
     "android": {
       "versionCode": 1,
       "adaptiveIcon": {
-        "backgroundColor": "#ffffff"
+        "backgroundColor": "##1E1D1D"
       }
     },
     "web": {},

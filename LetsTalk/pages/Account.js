@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, Image, FlatList, Pressable} from 'react-native';
-import { collection, doc, getDoc, getDocs, limit, query } from 'firebase/firestore';
-import { auth, db } from '../api/firebaseConfig';
+import {collection, doc, getDoc, getDocs, limit, query, where} from 'firebase/firestore';
+import { auth, db, defaultProfilePhoto } from '../api/firebaseConfig';
 import Post from '../components/Post';
 import { signOut } from 'firebase/auth';
 import { createStackNavigator } from '@react-navigation/stack';
@@ -17,8 +17,11 @@ const Account = ({route, navigation}) => {
   const [account, setAccount] = useState(null);
   const [posts, setPosts]= useState();
   const fetchAccount=async()=>{
-    const userDoc= await getDoc(doc(db, "users", username));
-    setAccount(userDoc.data());
+    const q = query(collection(db, 'users'), where('username','==', username), limit(1));
+    const userDoc= await getDocs(q);
+    userDoc.forEach((result)=>{
+        setAccount(result.data());   
+    })
   };
 
 const fetchPost=async()=>{
@@ -48,7 +51,7 @@ const fetchPost=async()=>{
   return (
     <View className="flex-1 bg-lightblue-500 p-4">
       <View className="flex-row items-center mb-4">
-        <Image className="w-24 h-24 mt-10  bg-slate-400 rounded-full border-4 border-white" source={account.url?{uri: account.url}:require('../assets/profile.png')} ></Image>
+        <Image className="w-24 h-24 mt-10  bg-slate-400 rounded-full border-4 border-white" source={account.url!==' '?{uri: account.url}:{uri: defaultProfilePhoto}} ></Image>
         <View className="flex-1 ml-4 mt-10 bg-white p-4 rounded-lg shadow-md">
           <Text className="text-lg font-bold mb-1">{username}</Text>
           <Text className="text-gray-700 mb-1">{account.bio}</Text>

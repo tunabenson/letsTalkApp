@@ -1,16 +1,12 @@
-import { Timestamp, collection, deleteDoc, doc, getCountFromServer, getDocs, limit, orderBy, query, setDoc, where } from "firebase/firestore";
+import { Timestamp, collection, deleteDoc, doc, getCountFromServer, getDoc, getDocs, limit, orderBy, query, setDoc, where } from "firebase/firestore";
 import {  db } from "./firebaseConfig";
 
 export const fetchLikeDislikeCounts = async (postId) => {
     try {
-      const collLikes = collection(db, 'posts', postId, 'likes');
-      const collDislikes = collection(db, 'posts', postId, 'dislikes');
-  
-      const snapshotLikes = await getCountFromServer(collLikes);
-      const snapshotDislikes = await getCountFromServer(collDislikes);
-  
-      const likes = snapshotLikes.data()?.count || 0;
-      const dislikes = snapshotDislikes.data()?.count || 0;
+      const post = await getDoc(doc(db, 'posts', postId));
+      
+      const likes = post.likeCount|| 0;
+      const dislikes = post.dislikeCount || 0;
   
       return { likes, dislikes };
     } catch (error) {

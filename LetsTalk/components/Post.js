@@ -11,6 +11,12 @@ import BiasBar from './BiasBar';
 class Post extends PureComponent {
   constructor(props) {
     super(props);
+    if(props.fromSearch){
+        this.id=props.item.objectID;
+    }
+    else{
+      this.id=props.item.id;
+    }
     this.state = {
       liked: false,
       disliked: false,
@@ -24,7 +30,7 @@ class Post extends PureComponent {
 
   getDislikedStatus = async () => {
     try {
-      const docSnapshot = await getDoc(doc(db, 'posts', this.props.item.id, 'dislikes', auth.currentUser.displayName));
+      const docSnapshot = await getDoc(doc(db, 'posts', this.id, 'dislikes', auth.currentUser.displayName));
       return docSnapshot.exists();
     } catch (error) {
       console.error(error.message);
@@ -34,7 +40,7 @@ class Post extends PureComponent {
 
   getLikedStatus = async () => {
     try {
-      const docSnapshot = await getDoc(doc(db, 'posts', this.props.item.id, 'likes', auth.currentUser.displayName));
+      const docSnapshot = await getDoc(doc(db, 'posts', this.id, 'likes', auth.currentUser.displayName));
       return docSnapshot.exists();
     } catch (error) {
       console.error(error.message);
@@ -59,7 +65,7 @@ class Post extends PureComponent {
   async componentDidUpdate(prevProps, prevState) {
     if (this.state.liked !== prevState.liked || this.state.disliked !== prevState.disliked) {
       try {
-        const { likes, dislikes } = await fetchLikeDislikeCounts(this.props.item.id);
+        const { likes, dislikes } = await fetchLikeDislikeCounts(this.id);
         this.setState({
           numLikes: likes,
           numDislikes: dislikes,
@@ -70,12 +76,11 @@ class Post extends PureComponent {
     }
   }
 
-  // Toggle like status
   toggleLike = () => {
     const { liked, disliked, numLikes } = this.state;
 
     if (liked) {
-      this.setState({ liked: false, numLikes: numLikes - 1 }, () => {
+      this.setState({ liked: false, numLikes: prev.numLikes - 1 }, () => {
         updateLikesInFirebase({ liked: false, id: this.props.item.id, displayName: auth.currentUser.displayName });
       });
     } else {
@@ -110,12 +115,12 @@ class Post extends PureComponent {
         });
       }
     }
-  };
+  }; 
 
-  // Report Post
+ 
   reportPost = async () => {
     this.setState({ modalVisible: false });
-    setDoc(doc(db, "reports", this.props.item.id.concat('-', auth.currentUser.displayName)), { reasonForReport: "testing waters for now" });
+    //setDoc(doc(db, "reports", this.id.concat('-', auth.currentUser.displayName)), { reasonForReport: "testing waters for now" });
   };
 
   // Open Edit Modal
@@ -123,7 +128,7 @@ class Post extends PureComponent {
     this.setState({ modalVisible: false, editModalVisible: true });
   };
 
-  // Handle text change in edit modal
+  // Handle text change in edit 
   handleEditChange = (text) => {
     this.setState({ editText: text });
   };
@@ -171,7 +176,7 @@ class Post extends PureComponent {
           style: 'destructive',
           onPress: async () => {
             try {
-              await deletePost(this.props.item.id);
+              await deletePost(this.id);
               this.setState({modalVisible:false})
             } catch (error) {
               console.error('Error deleting post:', error);
@@ -186,18 +191,25 @@ class Post extends PureComponent {
   
 
   render() {
-    const { item, navigation, fromAccount } = this.props;
+    const { item, navigation, fromAccount, fromSearch } = this.props;
     const { liked, disliked, numLikes, numDislikes, modalVisible, editModalVisible, editText } = this.state;
     const uid = item?.uid;
     const isPostOwner = auth.currentUser && item.username === auth.currentUser.displayName;
 
-    const navTo = () => (fromAccount ? 'Full-Post' : 'Post');
+    const navTo = () =>{
+      if(fromAccount!==undefined){
+        return fromAccount ? 'Full-Post' : 'Post'
+      }
+      else {
+        return 'postPage'
+      }
+    }
 
     return (
       <TouchableOpacity
         disabled={this.props?.disabled}
-        className="m-2 p-4 bg-white rounded-lg shadow-lg"
-        onPress={() => navigation.navigate(navTo(), { item, liked, disliked, uid, fullScreen: true })}
+        className="m-2 p-4 bg-white border border-lightblue-500 rounded-lg shadow-lg"
+        onPress={() => navigation.navigate(navTo(), { item, liked, disliked })}
         activeOpacity={0.7}
       >
         {this.props.item.biasEvaluation ?
@@ -222,7 +234,7 @@ class Post extends PureComponent {
         <Text className="absolute top-3 right-11 text-base font-bold text-black">#{item?.forum}</Text>
         <Text className="text-base text-gray-800 pb-2 mt-5">{item?.text}</Text>
         <Text className="text-sm text-gray-500 self-end">
-          {new Date(item?.date?.seconds * 1000).toLocaleDateString()}
+          {!this.props.fromSearching?new Date(item?.date?.seconds * 1000).toLocaleDateString():item.date.toLocaleDateString()}
         </Text>
 
         <View className="flex-row items-center mt-2">
@@ -237,8 +249,14 @@ class Post extends PureComponent {
           </TouchableOpacity>
         </View>
 
-        <CommentInput itemPath={item.id.concat()}/>
+       
 
+
+        {fromSearch?(null):
+        
+        (  
+        <View>
+        <CommentInput itemPath={item.id}/>
         <Modal
           visible={modalVisible}
           transparent={true}
@@ -305,6 +323,9 @@ class Post extends PureComponent {
             </View>
           </TouchableWithoutFeedback>
         </Modal>
+        </View>
+        )
+      }
       </TouchableOpacity>
     );
   }
