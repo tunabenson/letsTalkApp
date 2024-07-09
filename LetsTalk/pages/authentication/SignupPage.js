@@ -3,7 +3,7 @@ import { createStackNavigator } from '@react-navigation/stack';
 import { View, Text, TextInput, TouchableOpacity, Alert, FlatList, Pressable, KeyboardAvoidingView, Platform, Keyboard, ActivityIndicator, Image, Linking} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import  FontAwesome from '@expo/vector-icons/FontAwesome';
-import { db,auth, storage, usersRef } from '../api/firebaseConfig';
+import { db,auth, storage, usersRef, uploadImageForUser } from '../../api/firebaseConfig';
 import { createUserWithEmailAndPassword, fetchSignInMethodsForEmail, sendEmailVerification, signInWithCredential, signOut, updateProfile } from 'firebase/auth';
 import { setDoc, Timestamp, doc, query, where, getDocs, collection, limit, getDoc} from 'firebase/firestore';
 import  * as ImagePicker from 'expo-image-picker'
@@ -235,35 +235,14 @@ const SignUpStepThree = ({navigation, route}) => {
       quality: 1,
     });
     if (!response.canceled) {
-        setProfilePicture(response.assets[0].uri);
+        setProfilePicture(response.assets[0]);
       }
     };
   
   const loadImagetoUser=async()=>{
     try {
     if(profilePicture){
-      const {uri}= await FileSystem.getInfoAsync(profilePicture);
-
-      const blob= await new Promise((resolve, reject)=>{
-        const xhr= new XMLHttpRequest();
-        xhr.onload=()=>{
-          resolve(xhr.response);
-        }
-        xhr.onerror=(e)=>{
-          reject(new TypeError('Network request failed'))
-        }
-        xhr.responseType='blob';
-        xhr.open('GET', uri);
-        xhr.send(null);
-      })
-      const save=ref(storage, 'profilepic/'.concat(auth.currentUser.displayName).concat('.jpg'));
-      await uploadBytes(save, blob);
-
-      // var start = new Date().getTime();
-      // while (new Date().getTime() < start + 5000);
-
-      // let url= await getDownloadURL(ref(storage, "profilepic/profilepics/".concat(auth.currentUser.uid).concat("_200x200.jpg")));
-      // return url; 
+      await uploadImageForUser(profilePicture.base64);
     }
     } catch (error) {
       console.log(error);
@@ -277,21 +256,17 @@ const SignUpStepThree = ({navigation, route}) => {
         navigation.navigate("LoginPage");
         await createUserWithEmailAndPassword(auth, email, password);
         const user= auth.currentUser;
-        const uid=  user.uid;
         await updateProfile(user, {displayName:username})
-        await loadImagetoUser();
-       
-    
-      await setDoc(doc(db, 'users', user.displayName), {
+        await setDoc(doc(db, 'users', user.uid), {
                 name:name, 
-                //username:username, 
+                username:username, 
                 joinDate: Timestamp.now(),
                 interests:selectedForums,
                 bio:bio,
                 url:" ",
-                likes:0,
-                dislikes:0,
           });
+          await loadImagetoUser();
+          await sendEmailVerification(user);
           signOut(auth);
         } catch (error) {
           
@@ -307,7 +282,7 @@ const SignUpStepThree = ({navigation, route}) => {
       <Text className="text-white text-3xl mb-8 font-semibold">Sign Up - Step 3</Text>
       <TouchableOpacity onPress={selectImage} className="mb-4">
         {profilePicture ? (
-          <Image source={{ uri: profilePicture }} className="w-32 h-32 rounded-full" />
+          <Image source={{ uri: profilePicture.uri }} className="w-32 h-32 rounded-full" />
         ) : (
           <View className="w-32 h-32 rounded-full bg-gray-300 flex items-center justify-center">
             <FontAwesome name="camera" size={32} color="white" />

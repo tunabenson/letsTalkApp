@@ -1,25 +1,13 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, Pressable, TouchableOpacity, ActivityIndicator, KeyboardAvoidingView, Platform, Keyboard, Alert } from 'react-native';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
-import { auth, db, storage } from '../api/firebaseConfig';
+import { auth, db, storage } from '../../api/firebaseConfig';
 import { signInWithEmailAndPassword, signOut, updateCurrentUser, updateProfile } from 'firebase/auth';
 import { getDownloadURL, ref } from 'firebase/storage';
 import { doc, updateDoc } from 'firebase/firestore';
 
 
-const setURLForProfile=async(user)=>{
-  try {
-    let url= await getDownloadURL(ref(storage, "profilepic/profilepics/".concat(user.displayName).concat("_200x200.jpg")));
-    if(!url){
-      url='assets/profile.png';
-    }
-    updateDoc(doc(db,'users', user.displayName), {url:url});
-    updateProfile(user,{photoURL:url});
 
-  } catch (error) {
-    console.log(error.message);
-  }
-}
 
 const LoginPage = ({ navigation }) => {
   const [username, setUsername] = useState('');
@@ -35,13 +23,8 @@ const LoginPage = ({ navigation }) => {
         await signInWithEmailAndPassword(auth, username, password).then(userCredentials => {
           userCredentials.user.reload();
           if (!userCredentials.user.emailVerified) {
-            //signOut(auth); //In any decline case we will immidiately sign user out
+            signOut(auth); //In any decline case we will immidiately sign user out
             Alert.alert("Action Required", "Please Verify Email before logging on");
-          }
-          else if(!userCredentials.user.photoURL){
-              console.log("happened");
-              const user= userCredentials.user
-              setURLForProfile(user);
           }
           setUsername('');
           setPassword('');
@@ -103,12 +86,12 @@ const LoginPage = ({ navigation }) => {
           </TouchableOpacity>
         }
         <Pressable className='mt-10 mb-5 font-semibold' hitSlop={20} onPress={() => navigation.navigate('SignUpPage')}>
-          <Text className='font-bold'> Don't Have an Account? Sign Up Now!</Text>
+          <Text className='font-bold text-white'> Don't Have an Account? Sign Up Now!</Text>
         </Pressable>
 
         {/* Forgot Password Link */}
         <Pressable className='mt-10 font-semibold' hitSlop={20} onPress={() => navigation.navigate('ForgotPassword')}>
-          <Text className='font-bold text-blackraisin-100'>Forgot Password?</Text>
+          <Text className='font-bold text-white'>Forgot Password?</Text>
         </Pressable>
       </View>
     </KeyboardAvoidingView>

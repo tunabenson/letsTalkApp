@@ -5,7 +5,7 @@ module.exports = {
     extend: {
       colors: {
         lightblue: {
-          500: '#307351',
+          500: '#1E1D1D',
         },
         navajowhite:{
           100:'#FFE0B5'

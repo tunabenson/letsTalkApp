@@ -5,11 +5,10 @@ import Post from '../components/Post';
 import CommentList from '../components/CommentList';
 export const FullPostScreen = ({ route, navigation }) => {
     const { item, fromAccount, liked, disliked } = route.params;
-  
+
   
     return (
       <View className="flex-1 bg-lightblue-500 pt-5">
-       
         <TouchableOpacity
           className="absolute top-5 left-2 mb-10 p-4"
           onPress={() => navigation.goBack()}

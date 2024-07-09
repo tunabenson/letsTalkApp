@@ -9,31 +9,154 @@ const db = admin.firestore();
 const perspective = new Perspective({apiKey: functions.config().perspective.api_key});
 
 
-exports.createPost= functions
-.runWith({
-  timeoutSeconds: 540,
-  memory: '2GB',
-})
-.https.onCall(async (data, context) => {
-  const currentUser = context.auth; 
-  // Check if the user is authenticated
-  if (!currentUser) {
-    throw new functions.https.HttpsError('unauthenticated', 'The function must be called while authenticated.');
-  }
 
+const { TextServiceClient } = require('@google-ai/generativelanguage');
+const { GoogleAuth } = require('google-auth-library');
 
-  const text = data.text;
-  const result = await perspective.analyze(text, {attributes:['toxicity', 'IDENTITY_ATTACK', 'INSULT', 'THREAT']});
-  for(const [key, value] of Object.entries(result.attributeScores)){
-    if(value?.summaryScore?.value>=0.7){
-        return {header:'Declined' ,message: 'Sorry, your post does not meet our commmunity guidlines, please rewrite before posting'};
-    }
-}
-  await db.collection('posts').add({...data, likeCount:0, dislikeCount:0, date: admin.firestore.Timestamp.now()});
-  return {header:'Success' ,message: `Your post has been uploaded to the forum ${data?.forum}`};
-  // no flags have been triggered
-  
+const palmClient = new TextServiceClient({
+  authClient: new GoogleAuth().fromAPIKey(functions.config().palm.api_key),
 });
+
+
+//TODO: reconsider the use of this, maybe do it with postCreation request?
+//PROs: less calls, CONS: longer wait time before response, no edit check for bias
+exports.BiasEvaluation= functions.firestore
+  .document('posts/{postId}')
+  .onWrite(async (change, context) => {
+    const newValue = change.after.data();
+    if(change.before.get('text')===change.after.get('text'))return;
+    // Check if the document was created or updated and contains the 'text' field
+    if (!newValue || !newValue.text) {
+      console.log('No text field found or document was deleted');
+      return;
+    }
+
+    const { text } = newValue;
+
+    // Construct a custom prompt
+    const customPrompt = `Define the political views for the text below? 
+Options: 
+-left
+ -center
+ -right
+
+Please print each category name along with a number from 0-1 indicating the strength of that category. 
+format exactly like this:  "right:x, center:y, left:z "
+
+Text: ${text}
+`;
+
+    try {
+      // Call the PaLM API
+      const [response] = await palmClient.generateText({
+
+        model:'models/text-bison-001', // Use your specific model
+        prompt: {
+          text: customPrompt,
+        },
+        temperature: 0.1, // Adjust temperature as needed
+        candidateCount: 1, // Number of responses to generate
+      });
+
+      // Extract the generated text from the API response
+      const generatedText = response.candidates[0].output;
+
+      if(generatedText && generatedText!=='not related'){
+        const biasEvaluation = {};
+        generatedText.split(',').forEach(pair => {
+          const [key, value] = pair.split(':').map(part => part.trim());
+          biasEvaluation[key] = parseFloat(value);
+        });
+        await change.after.ref.update({ generatedText, biasEvaluation});
+    }
+    else{
+        await change.after.ref.update({generatedText:'not related'});
+    }
+
+      // Update the Firestore document with the generated text
+
+
+      console.log('Document updated with generated text:', generatedText);
+    } catch (error) {
+      console.error('Error generating text with PaLM API:', error);
+    }
+  });
+
+
+
+
+  exports.createPost = functions
+  .runWith({
+    timeoutSeconds: 540,
+    memory: '2GB',
+  })
+  .https.onCall(async (data, context) => {
+    const currentUser = context.auth;
+    if (!currentUser) {
+      throw new functions.https.HttpsError('unauthenticated', 'The function must be called while authenticated.');
+    }
+
+    const text = data.text;
+
+    // Check toxicity
+    try {
+      const result = await perspective.analyze(text, {attributes: ['toxicity', 'IDENTITY_ATTACK', 'INSULT', 'THREAT']});
+      for (const [key, value] of Object.entries(result.attributeScores)) {
+        if (value?.summaryScore?.value >= 0.7) {
+          return {header: 'Declined', message: 'Sorry, your post does not meet our community guidelines, please rewrite before posting'};
+        }
+      }
+    } catch (error) {
+      console.error('Error evaluating toxicity:', error.message);
+      throw new functions.https.HttpsError('internal', 'Error evaluating toxicity.');
+    }
+
+    // Check if post is related to forum topic
+const customPrompt = `identify whether or not the text below is relevant and contributing to mature discussion to the forum below?
+
+Options:
+-yes
+-no
+Please print ONLY one category
+Text: ${text}
+Forum: ${data.forum}`;
+
+    try {
+      // Call the PaLM API
+      const [response] = await palmClient.generateText({
+        model: 'models/text-bison-001', // Use your specific model
+        prompt: {
+          text: customPrompt,
+        },
+        temperature: 0.2, // Adjust temperature as needed
+        candidateCount: 1, // Number of responses to generate
+      });
+
+      // Extract the generated text from the API response
+      const generatedText = response.candidates[0].output;
+
+      if (!generatedText || generatedText.trim() === 'no') {
+        return {header: 'Declined', message: 'Sorry, your post is either not contributing or irrelevant to the forum'};
+      }
+    } catch (error) {
+      console.error('Error with PaLM:', error.message);
+      throw new functions.https.HttpsError('internal', 'Error with relevance check.');
+    }
+
+    // Add post to the database
+    try {
+      await db.collection('posts').add({
+        ...data,
+        likeCount: 0,
+        dislikeCount: 0,
+        date: admin.firestore.Timestamp.now()
+      });
+      return {header: 'Success', message: `Your post has been uploaded to the forum ${data?.forum}`};
+    } catch (error) {
+      console.error('Error saving post:', error.message);
+      throw new functions.https.HttpsError('internal', 'Error saving post.');
+    }
+  });
 
 
 
@@ -41,11 +164,11 @@ exports.createPost= functions
 
 const firebase_tools = require('firebase-tools');
 const { getAuth } = require('firebase-admin/auth');
-const { user } = require('firebase-functions/v1/auth');
 
 
 exports.deletePost = functions
   .runWith({
+    enforceAppCheck:true,
     timeoutSeconds: 540,
     memory: '2GB',
   })
@@ -53,7 +176,7 @@ exports.deletePost = functions
     const { postId } = data;
     const currentUser = context.auth;
     const user= (await getAuth().getUser(currentUser.token.uid));
-   
+
     // Check if the user is authenticated
     if (!currentUser) {
       throw new functions.https.HttpsError('unauthenticated', 'The function must be called while authenticated.');
@@ -114,15 +237,13 @@ exports.sendWelcomeEmail = functions.auth.user().onCreate(async (user) => {
       `
     };
 
-    // Send email using an email service (e.g., SendGrid, Nodemailer)
-    // Here we'll use Nodemailer for example:
     const nodemailer = require('nodemailer');
-    
+
     const transporter = nodemailer.createTransport({
       service: 'gmail',
-    
+
       auth: {
-        
+
         user: 'filler',
         pass: 'filler',
       },
@@ -142,9 +263,9 @@ exports.sendWelcomeEmail = functions.auth.user().onCreate(async (user) => {
         .document('posts/{postId}/likes/{likesId}')
         .onWrite(async (change, context) => {
             const postId = context.params.postId;
-    
+
             const postRef = admin.firestore().collection('posts').doc(postId);
-    
+
             let increment;
             if (!change.before.exists) {
                 increment = admin.firestore.FieldValue.increment(1);
@@ -153,27 +274,27 @@ exports.sendWelcomeEmail = functions.auth.user().onCreate(async (user) => {
             } else {
                 return null;
             }
-    
+
             try {
                 await postRef.update({ likeCount: increment });
-    
+
                 console.log(`Post ${postId} updated with increment: ${increment}`);
-    
+
                 return null;
             } catch (error) {
                 console.error(`Error updating like count for post ${postId}:`, error);
                 return null;
             }
         });
-    
+
 
         exports.addDislikeOnChange = functions.firestore
         .document('posts/{postId}/dislikes/{likesId}')
         .onWrite(async (change, context) => {
             const postId = context.params.postId;
-    
+
             const postRef = admin.firestore().collection('posts').doc(postId);
-    
+
             let increment;
             if (!change.before.exists) {
                 increment = admin.firestore.FieldValue.increment(1);
@@ -182,133 +303,121 @@ exports.sendWelcomeEmail = functions.auth.user().onCreate(async (user) => {
             } else {
                 return null;
             }
-    
+
             try {
                 await postRef.update({ dislikeCount: increment });
-    
+
                 console.log(`Post ${postId} updated with increment: ${increment}`);
-    
+
                 return null;
             } catch (error) {
                 console.error(`Error updating dislike count for post ${postId}:`, error);
                 return null;
             }
         });
-    
 
 
-const { TextServiceClient } = require('@google-ai/generativelanguage');
-const { GoogleAuth } = require('google-auth-library');
-const { Timestamp } = require('firebase-admin/firestore');
-
-const palmClient = new TextServiceClient({
-  authClient: new GoogleAuth().fromAPIKey(functions.config().palm.api_key),
-});
 
 
-//TODO: reconsider the use of this, maybe do it with postCreation request? 
-//PROs: less calls, CONS: longer wait time before response, no edit check for bias
-exports.BiasEvaluation= functions.firestore
-  .document('posts/{postId}')
-  .onWrite(async (change, context) => {
-    const newValue = change.after.data();
-    if(change.before.get('text')===change.after.get('text'))return;
-    // Check if the document was created or updated and contains the 'text' field
-    if (!newValue || !newValue.text) {
-      console.log('No text field found or document was deleted');
-      return;
+
+
+
+
+const sharp = require('sharp');
+const storage = admin.storage();
+
+exports.resizeImage = functions.https.onCall(async (data, context) => {
+    if (!data || !data.image) {
+        throw new functions.https.HttpsError('invalid-argument', 'The function must be called with an "image" field.');
     }
 
-    const { text } = newValue;
-
-    // Construct a custom prompt
-    const customPrompt = `generate a set of 3 floating point numbers from 0-100 labelled: (left, center, right) representing percents. output as "left: x, center:y, right:z" by evaluating the political bias and view of the following text:" ${text}". if it is not related to politics you may output: "not related" `;
+    const base64Image = data.image;
+    const buffer = Buffer.from(base64Image, 'base64');
 
     try {
-      // Call the PaLM API
-      const [response] = await palmClient.generateText({
+        // Resize the image to 200x200 pixels
+        const resizedImageBuffer = await sharp(buffer)
+            .resize(200, 200)
+            .toBuffer();
 
-        model:'models/text-bison-001', // Use your specific model
-        prompt: {
-          text: customPrompt,
-        },
-        temperature: 0.4, // Adjust temperature as needed
-        candidateCount: 1, // Number of responses to generate
-      });
+        // Generate a unique file name
+        const filename = `${context.auth.token.uid}.png`;
 
-      // Extract the generated text from the API response
-      const generatedText = response.candidates[0].output;
-      
-      if(generatedText && generatedText!=='not related'){
-        const biasEvaluation = {};
-        generatedText.split(',').forEach(pair => {
-          const [key, value] = pair.split(':').map(part => part.trim());
-          biasEvaluation[key] = parseFloat(value);
+        // Define the destination bucket and file path
+        const bucket = storage.bucket('profilepics');
+        const file = bucket.file(filename);
+
+        // Upload the resized image to Cloud Storage
+        await file.save(resizedImageBuffer, {
+            metadata: {
+                contentType: 'image/png',
+            },
         });
-        await change.after.ref.update({ generatedText, biasEvaluation});
-    }
-    else{ 
-        await change.after.ref.update({generatedText:'not related'});
-    }
-    
-      // Update the Firestore document with the generated text
-    
 
-      console.log('Document updated with generated text:', generatedText);
+
+        const [url] = await file.getSignedUrl({
+            action: 'read',
+            expires: '03-01-2500',
+        });
+        await admin.firestore(admin.app).collection('users').doc(context.auth.token.uid).update({"url": url})
+
     } catch (error) {
-      console.error('Error generating text with PaLM API:', error);
+        throw new functions.https.HttpsError('unknown', `Error processing image: ${error.message}`);
     }
-  });
-
-
-const algoliasearch = require('algoliasearch');
-const ALGOLIA_APP_ID = "GQZGLJWQVJ";
-const algoliaClient = algoliasearch(ALGOLIA_APP_ID, functions.config().algolia.admin_key);
-const index = algoliaClient.initIndex('usernames');
-
-exports.addUserToAlgolia = functions.firestore.document('users/{userId}').onCreate(async (snap, context) => {
-  const userData = snap.data();
-  
-  if (!userData.username) {
-    console.error('No username field found in the new document.');
-    return;
-  }
-  
-  const algoliaObject = {
-    objectID: context.params.userId,
-    username: userData.username
-  };
-
-  try {
-    await index.saveObject(algoliaObject);
-    console.log('Username added to Algolia:', algoliaObject);
-  } catch (error) {
-    console.error('Error adding username to Algolia:', error);
-  }
 });
 
 
 
-exports.searchUsernames = functions.https.onCall(async (data, context) => {
-  // Check if the query parameter is provided
-  const query = data.q;
+//we use these agents for web scraping, use multiple to avoid getting blocking.
+const userAgents = [
+  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36",
+  "Mozilla/5.0 (Windows NT 10.0; WOW64; rv:54.0) Gecko/20100101 Firefox/54.0",
+  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/42.0.2311.135 Safari/537.36 Edge/12.246",
+  "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/13.1.3 Safari/605.1.15",
+  "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/85.0.4183.121 Safari/537.36",
+  "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:78.0) Gecko/20100101 Firefox/78.0",
+  "Mozilla/5.0 (Linux; Android 10; SM-A505FN) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/84.0.4147.125 Mobile Safari/537.36",
+  "Mozilla/5.0 (iPhone; CPU iPhone OS 13_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/13.1.2 Mobile/15E148 Safari/604.1",
+  "Mozilla/5.0 (iPad; CPU OS 13_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) CriOS/85.0.4183.109 Mobile/15E148 Safari/604.1",
+  "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:55.0) Gecko/20100101 Firefox/55.0"
+];
 
-  if (!query) {
-    throw new functions.https.HttpsError('invalid-argument', 'Query parameter "q" is required.');
-  }
+const parser = require('html-metadata-parser');
 
+exports.getArticleTitle=functions.https.onCall(async (data, context)=>{
   try {
-    // Perform the search on the Algolia index
-    const result = await index.search(query, {
-      hitsPerPage: 10,
-      attributesToRetrieve: ['objectID', 'username'] // Retrieve both objectID and username
-    });
+    const agent=userAgents[Math.floor(Math.random() * userAgents.length)];
 
-    // Return the search results
-    return result.hits;
-  } catch (error) {
-    console.error('Error searching usernames:', error);
-    throw new functions.https.HttpsError('internal', 'Error searching usernames.', error.message);
+    const result = await parser.parse(data.url, {headers:
+          {'User-Agent': agent,
+}});
+
+const ogType = result.og && result.og.type;
+// Check Schema.org type
+const schemaType = result.jsonld && result.jsonld['@type'];
+
+const isArticle= ogType === 'article' || ['Article', 'NewsArticle', 'BlogPosting'].includes(schemaType);
+
+
+if(isArticle){
+    const title = result.meta.title; // Access title from meta data
+    let imageUrl = null;
+
+    // Try to get the image URL from Open Graph data if available
+    if (result.og && result.og.image) {
+      imageUrl = result.og.image;
+      return { title, imageUrl };
+    }
+
+    return { title };
   }
-});
+  else{
+    throw new functions.https.HttpsError('Link provided was not an article', 'try again with an article');
 
+  }
+  } catch (error) {
+    console.error('Failed to retrieve metadata:', error);
+    return null;
+  }
+}
+);
