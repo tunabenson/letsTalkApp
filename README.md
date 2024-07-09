@@ -15,7 +15,7 @@ Follow these steps to get your development environment set up:
 
 1. **Clone the Repository**
    ```bash
-   git clone https://github.com/yourusername/letsTalkApp.git
+   git clone https://github.com/tunabenson/letsTalkApp.git
    cd letsTalkApp/LetsTalk
    ```
 
