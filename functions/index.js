@@ -245,7 +245,7 @@ exports.sendWelcomeEmail = functions.auth.user().onCreate(async (user) => {
       auth: {
 
         user: 'filler',
-        pass: 'fillerpass',
+        pass: 'filler',
       },
     });
 
