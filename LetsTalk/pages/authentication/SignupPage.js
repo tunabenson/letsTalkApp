@@ -3,7 +3,7 @@ import { createStackNavigator } from '@react-navigation/stack';
 import { View, Text, TextInput, TouchableOpacity, Alert, FlatList, Pressable, KeyboardAvoidingView, Platform, Keyboard, ActivityIndicator, Image, Linking} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import  FontAwesome from '@expo/vector-icons/FontAwesome';
-import { db,auth, storage, usersRef, uploadImageForUser } from '../api/firebaseConfig';
+import { db,auth, storage, usersRef, uploadImageForUser } from '../../api/firebaseConfig';
 import { createUserWithEmailAndPassword, fetchSignInMethodsForEmail, sendEmailVerification, signInWithCredential, signOut, updateProfile } from 'firebase/auth';
 import { setDoc, Timestamp, doc, query, where, getDocs, collection, limit, getDoc} from 'firebase/firestore';
 import  * as ImagePicker from 'expo-image-picker'

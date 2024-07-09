@@ -1,6 +1,6 @@
 import React from 'react';
 import {  Text, Image, TouchableOpacity, View } from 'react-native';
-import { defaultProfilePhoto } from '../api/firebaseConfig';
+import { defaultProfilePhoto } from '../../api/firebaseConfig';
 
 const UserResult = ({ user, navigation}) => {
   return (

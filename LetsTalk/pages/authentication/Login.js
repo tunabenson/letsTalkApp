@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, Pressable, TouchableOpacity, ActivityIndicator, KeyboardAvoidingView, Platform, Keyboard, Alert } from 'react-native';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
-import { auth, db, storage } from '../api/firebaseConfig';
+import { auth, db, storage } from '../../api/firebaseConfig';
 import { signInWithEmailAndPassword, signOut, updateCurrentUser, updateProfile } from 'firebase/auth';
 import { getDownloadURL, ref } from 'firebase/storage';
 import { doc, updateDoc } from 'firebase/firestore';

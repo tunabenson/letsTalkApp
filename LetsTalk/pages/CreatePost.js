@@ -5,108 +5,149 @@ import WebView from 'react-native-webview';
 import { createStackNavigator } from '@react-navigation/stack';
 import Article from '../components/Article';
 import { auth, createPost } from '../api/firebaseConfig';
-import { ScrollView, TextInput } from 'react-native-gesture-handler';
+import { ScrollView, Switch, TextInput } from 'react-native-gesture-handler';
+import AwesomeAlert from 'react-native-awesome-alerts';
 
 const CreatePost = ({ navigation }) => {
   
 
-  const PostCreationPage = ({navigation, route}) => {
-    const {url}=route.params;
-    const [attachedUrl, setAttachedUrl] = useState(url);
-    const [forum, setForum] = useState('');
-    const [content, setContent] = useState('');
-    const [isPosting, setIsPosting] = useState(false);
   
-
-    const handlePost = async () => {
-      setIsPosting(true);
-      if (!forum.trim() || !content.trim()) {
-        Alert.alert('Error', 'Please enter both the forum name and the content.');
-      } else {
-        const user = auth.currentUser.displayName;
-        const post = {
-          text: content,
-          username: user,
-          forum: forum,
-        };
-        if (attachedUrl) {
-          post.url = attachedUrl;
-        }
-        const response = await createPost(post);
-        Alert.alert(response.header, response.message);
-
-        if (response.header === 'Success') {
-          navigation.goBack();
-          setForum('');
-          setContent('');
-          setAttachedUrl('');
-        }
-        
+  
+const PostCreationPage = ({ navigation, route }) => {
+  const { url } = route.params;
+  const [forum, setForum] = useState('');
+  const [content, setContent] = useState('');
+  const [isPosting, setIsPosting] = useState(false);
+  const [usePoliticalAnalysis, setUsePoliticalAnalysis] = useState(false);
+  const [alertVisible, setAlertVisible] = useState(false);
+  const [alertData, setAlertData] = useState({ title: '', message: '', confirmButton: 'OK', onConfirm: () => {} });
+  var articleContents;
+  const handlePost = async () => {
+    setIsPosting(true);
+    if (!forum.trim() || !content.trim()) {
+      setAlertData({
+        title: 'Error',
+        message: 'Please enter both the forum name and the content.',
+        confirmButton: 'OK',
+        onConfirm: () => setAlertVisible(false)
+      });
+      setAlertVisible(true);
+    } else {
+      const user = auth.currentUser.displayName;
+      const post = {
+        text: content,
+        username: user,
+        forum: forum,
+        usePoliticalAnalysis: usePoliticalAnalysis,
+      };
+      if (url) {
+        post.article = articleContents;
       }
-      setIsPosting(false);
-    };
+      const response = await createPost(post);
+      setAlertData({
+        title: response.header,
+        message: response.message,
+        confirmButton: 'OK',
+        onConfirm: () => {
+          if (response.header === 'Success') {
+            navigation.goBack();
+            setForum('');
+            setContent('');
+            setAttachedUrl('');
+          }
+          setAlertVisible(false);
+        }
+      });
 
-    const handleBrowserPress = () => {
-      navigation.navigate('WebViewScreen');
-    };
-
-    return (
-      <ScrollView className="flex-1 bg-lightblue-500 p-4">
-        <View className="mb-4 mt-10">
-          <Text className="text-white text-2xl font-semibold mb-6">Create a Post</Text>
-
-          <View className="bg-white p-4 rounded-2xl mb-4">
-            <TextInput
-              className="text-black"
-              placeholder="Forum Name"
-              value={forum}
-              hitSlop={20}
-              onChangeText={(text) => setForum(text.replace(/ /g, '_').toLowerCase())} // Remove spaces from forum name
-            />
-          </View>
-
-          <View className="bg-white p-4 rounded-2xl mb-4">
-            <TextInput
-              className="text-black h-32"
-              placeholder="Write your content here..."
-              multiline
-              numberOfLines={4}
-              value={content}
-              onChangeText={(text) => setContent(text)}
-              blurOnSubmit={true}
-            />
-          </View>
-
-          {attachedUrl ? (
-            <View className="bg-white p-4 rounded-2xl flex-row mb-4">
-              <Article url={attachedUrl} />
-            </View>
-          ) : null}
-
-          <View className="flex-row justify-start mb-4">
-            <TouchableOpacity>
-              <AntDesign name="link" size={24} color="white" style={{ marginLeft: 10, marginRight: 20 }} />
-            </TouchableOpacity>
-            <TouchableOpacity onPress={handleBrowserPress}>
-              <Entypo name="browser" size={24} color="white" />
-            </TouchableOpacity>
-          </View>
-
-          {!isPosting ? (
-            <TouchableOpacity className="bg-white p-4 rounded-lg items-center" onPress={handlePost}>
-              <Text className="text-lightblue-500 font-bold">Post</Text>
-            </TouchableOpacity>
-          ) : (
-            <ActivityIndicator size="small" color="#ffffff" />
-          )}
-        </View>
-      </ScrollView>
-    );
+      setAlertVisible(true);
+    }
+    setIsPosting(false);
   };
+
+  const handleBrowserPress = () => {
+    navigation.navigate('WebViewScreen');
+  };
+
+  return (
+    <ScrollView className="flex-1 bg-lightblue-500 p-4">
+      <View className="mb-4 mt-10">
+        <Text className="text-white text-2xl font-semibold mb-6">Create a Post</Text>
+
+        <View className="bg-white p-4 rounded-2xl mb-4">
+          <TextInput
+            className="text-black"
+            placeholder="Forum Name"
+            value={forum}
+            hitSlop={20}
+            onChangeText={(text) => setForum(text.replace(/ /g, '_').toLowerCase())} // Remove spaces from forum name
+          />
+        </View>
+
+        <View className="bg-white p-4 rounded-2xl mb-4">
+          <TextInput
+            className="text-black h-32"
+            placeholder="Write your content here..."
+            multiline
+            numberOfLines={4}
+            value={content}
+            onChangeText={(text) => setContent(text)}
+            blurOnSubmit={true}
+          />
+        </View>
+
+        {url ? (
+          <View className="bg-white p-4 rounded-2xl flex-row mb-4">
+            <Article url={url} onArticleFetch={(data)=>{
+              articleContents=data;
+            }} />
+          </View>
+        ) : null}
+
+        <View className="flex-row justify-start mb-4">
+          <TouchableOpacity>
+            <AntDesign name="link" size={24} color="white" style={{ marginLeft: 10, marginRight: 20 }} />
+          </TouchableOpacity>
+          <TouchableOpacity onPress={handleBrowserPress}>
+            <Entypo name="browser" size={24} color="white" />
+          </TouchableOpacity>
+        </View>
+
+        <View className="flex-row justify-between items-center mb-4">
+          <Text className="text-white">Use Political Analysis</Text>
+          <Switch
+            value={usePoliticalAnalysis}
+            onValueChange={(value) => setUsePoliticalAnalysis(value)}
+          />
+        </View>
+
+        {!isPosting ? (
+          <TouchableOpacity className="bg-white p-4 rounded-lg items-center" onPress={handlePost}>
+            <Text className="text-lightblue-500 font-bold">Post</Text>
+          </TouchableOpacity>
+        ) : (
+          <ActivityIndicator size="small" color="#ffffff" />
+        )}
+      </View>
+      <AwesomeAlert
+        show={alertVisible}
+        showProgress={false}
+        title={alertData.title}
+        message={alertData.message}
+        closeOnTouchOutside={true}
+        closeOnHardwareBackPress={false}
+        showConfirmButton={true}
+        confirmText={alertData.confirmButton}
+        confirmButtonColor="#DD6B55"
+        onConfirmPressed={alertData.onConfirm}
+      />
+    </ScrollView>
+  );
+};
+  
 
   const WebViewScreen = ({ navigation }) => {
     const webViewRef = useRef(null);
-    const [url, setUrl]= useState();
+    let url='';
     useLayoutEffect(() => {
       navigation.setOptions({
         headerLeft: () => (
@@ -124,7 +165,6 @@ const CreatePost = ({ navigation }) => {
           <TouchableOpacity
             className=" mr-5 mb-2 flex-row-reverse bg-green-500 p-2 rounded-2xl"
             onPress={() => {
-              console.log('from webview',url);
               navigation.navigate('postCreation', { url: url });
             }}
           >
@@ -135,10 +175,6 @@ const CreatePost = ({ navigation }) => {
       });
     }, []);
 
-    const handleNavigationStateChange = (navState) => {
-      setUrl(navState);
-      console.log(navState.url);
-    };
 
     return (
       <View className="bg-black flex-1">
@@ -147,7 +183,11 @@ const CreatePost = ({ navigation }) => {
           source={{ uri: 'https://news.google.com' }}
           allowUniversalAccessFromFileURLs={true}
           originWhitelist={['*']}
-          onNavigationStateChange={handleNavigationStateChange}
+          onNavigationStateChange={(event)=>{
+            url=event.url;
+            console.log(url);
+          }}
+          
         />
       </View>
     );

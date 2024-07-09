@@ -1,9 +1,9 @@
 import { initializeApp } from "firebase/app";
-import { initializeAuth, getReactNativePersistence } from "firebase/auth";
+import { initializeAuth, getReactNativePersistence, getAuth } from "firebase/auth";
 import { getFunctions, httpsCallable } from "firebase/functions";
-import {getFirestore,collection, initializeFirestore, CACHE_SIZE_UNLIMITED, getDoc, doc, query, limit, orderBy} from 'firebase/firestore'
+import {collection, initializeFirestore, CACHE_SIZE_UNLIMITED, getDoc, doc, query, limit, orderBy, getCountFromServer} from 'firebase/firestore'
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { getDownloadURL, getStorage, ref } from "firebase/storage";
+import {  getStorage } from "firebase/storage";
 import algoliasearch from "algoliasearch";
 // https://firebase.google.com/docs/web/setup#available-libraries
 
@@ -23,9 +23,8 @@ const firebaseConfig = {
 export const app = initializeApp(firebaseConfig);
 
 
-export const auth= initializeAuth(app, {
-  persistence:getReactNativePersistence(AsyncStorage)
-})
+export const auth=initializeAuth(app, {persistence:getReactNativePersistence(AsyncStorage)})
+
 export const storage= getStorage(app);
 
 export const searchClient= algoliasearch('GQZGLJWQVJ','305db113298fb6ea6a615192fbf59ced');
@@ -88,4 +87,21 @@ export async function getArticleTitleFromURL(url){
     console.error('Error fetching title:', error);
   }
 }
+
+export const fetchLikeDislikeCounts = async (postId) => {
+  try {
+    const collLikes = collection(db, 'posts', postId, 'likes');
+    const collDislikes = collection(db, 'posts', postId, 'dislikes');
+    const snapshotLikes = await getCountFromServer(collLikes);
+    const snapshotDislikes = await getCountFromServer(collDislikes);
+    const likes= snapshotLikes.data().count || 0;
+    const dislikes= snapshotDislikes.data().count || 0;
+    return { likes, dislikes };
+  } catch (error) {
+    console.error('Error fetching like/dislike counts:', error);
+    return { likes: 0, dislikes: 0 };
+  }
+};
+
+
 

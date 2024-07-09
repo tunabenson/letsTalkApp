@@ -1,21 +1,6 @@
 import { Timestamp, collection, deleteDoc, doc, getCountFromServer, getDoc, getDocs, limit, orderBy, query, setDoc, where } from "firebase/firestore";
 import {  db } from "./firebaseConfig";
 
-export const fetchLikeDislikeCounts = async (postId) => {
-    try {
-      const post = await getDoc(doc(db, 'posts', postId));
-      
-      const likes = post.likeCount|| 0;
-      const dislikes = post.dislikeCount || 0;
-  
-      return { likes, dislikes };
-    } catch (error) {
-      console.error('Error fetching like/dislike counts:', error);
-      return { likes: 0, dislikes: 0 };
-    }
-
-
-};
 
 export const fetchForumData=async()=>{
    

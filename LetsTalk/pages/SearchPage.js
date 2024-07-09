@@ -1,13 +1,15 @@
 import React, { useRef, useState } from 'react';
 import { View, TextInput, Text, TouchableOpacity, FlatList, Keyboard } from 'react-native';
 import { FontAwesome } from '@expo/vector-icons';
-import UserResult from '../components/UserResult';
+import UserResult from '../components/results/UserResult';
 import Post from '../components/Post';
 import {  searchClient } from '../api/firebaseConfig';
 import { createStackNavigator } from '@react-navigation/stack';
 import { FullPostScreen } from './FullPostScreen';
 import ProfilePage from './Account';
 import { InstantSearch, useInfiniteHits, useSearchBox } from 'react-instantsearch-core';
+import PostResult from '../components/results/PostResult';
+import SearchListEmptyComponent from '../components/utility/SearchListEmptyComponent';
 
 export const SearchStackPage=()=>{
   const Stack= createStackNavigator();
@@ -39,7 +41,7 @@ const SearchPage= ({ navigation }) => {
       if (searchType === 'usernames') {
         return <UserResult user={item} navigation={navigation}/>;
       } else if (searchType === 'posts') {
-        return <Post item={item} navigation={navigation}  fromSearch={true} />;
+        return <PostResult item={item} navigation={navigation}  fromSearch={true} />;
       }
     };
     
@@ -55,7 +57,7 @@ const SearchPage= ({ navigation }) => {
           showMore();
         }
       }}
-      ListEmptyComponent={<Text className="text-center text-gray-500">No results found</Text>}
+      ListEmptyComponent={<SearchListEmptyComponent navigation={navigation} /> }
     />
     );
   }
