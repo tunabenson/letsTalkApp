@@ -56,7 +56,7 @@ const LoginPage = ({ navigation }) => {
           onSubmitEditing={() => Keyboard.dismiss()}
           placeholder="Email"
           value={username}
-          onChangeText={newText => setUsername(newText.replace(/ /g, ''))}
+          onChangeText={newText => setUsername(newText.replace(/ /g, '').toLowerCase())}
           keyboardType='email-address'
         />
         <View className="flex flex-row items-center w-64 p-3 mb-4 border rounded-2xl border-gray-300 bg-white">

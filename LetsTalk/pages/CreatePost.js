@@ -17,7 +17,7 @@ const PostCreationPage = ({ navigation, route }) => {
   const { url } = route.params;
   const [forum, setForum] = useState('');
   const [content, setContent] = useState('');
-  const [isPosting, setIsPosting] = useState(false);
+  const [isPostnig, setIsPosting] = useState(false);
   const [usePoliticalAnalysis, setUsePoliticalAnalysis] = useState(false);
   const [alertVisible, setAlertVisible] = useState(false);
   const [alertData, setAlertData] = useState({ title: '', message: '', confirmButton: 'OK', onConfirm: () => {} });
@@ -53,7 +53,7 @@ const PostCreationPage = ({ navigation, route }) => {
             navigation.goBack();
             setForum('');
             setContent('');
-            setAttachedUrl('');
+            
           }
           setAlertVisible(false);
         }
@@ -97,9 +97,7 @@ const PostCreationPage = ({ navigation, route }) => {
 
         {url ? (
           <View className="bg-white p-4 rounded-2xl flex-row mb-4">
-            <Article url={url} onArticleFetch={(data)=>{
-              articleContents=data;
-            }} />
+            <Article url={url} onArticleFetch={(data)=>{articleContents=data}} />
           </View>
         ) : null}
 

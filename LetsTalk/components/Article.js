@@ -28,15 +28,15 @@ function Article({url, onArticleFetch}) {
       className="p-4 bg-slate-400 rounded-lg shadow-md"
       onPress={() => setModalVisible(true)}
     >
-      {articleContent?.imageUrl ? (
-        <Text className="text-xl font-bold mb-2">{articleContent.title}</Text>
+      {article?.imageUrl ? (
+        <Text className="text-xl font-bold mb-2">{article.title}</Text>
       ) : (
         <Text className="text-xl font-bold mb-2">No title available</Text>
       )}
-      {articleContent?.link ? (
+      {article?.link ? (
         <Image
           className="w-full h-64 rounded-lg"
-          source={{ uri: articleContent.imageUrl }}
+          source={{ uri: article.imageUrl }}
           resizeMode="cover"
         />
       ) : (
@@ -58,12 +58,12 @@ function Article({url, onArticleFetch}) {
         >
           <Text className="text-black mt-6 ml-3 text-xl text-left">Close</Text>
         </TouchableOpacity>
-        {articleContent?.link ? (
+        {article?.link ? (
           <WebView 
             ref={webViewRef}
             originWhitelist={['*']}
             allowUniversalAccessFromFileURLs={true} 
-            source={{ uri: articleContent.link }} 
+            source={{ uri: article.link }} 
           />
         ) : (
           <Text className="text-center mt-20">No article link provided.</Text>

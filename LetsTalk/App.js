@@ -3,7 +3,7 @@ import { StyleSheet, View } from 'react-native';
 import 'react-native-gesture-handler';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
-import Home from './pages/Home';
+import Home from './pages/tabs/Home';
 import LoginPage from './pages/authentication/Login';
 import SignUpPage from './pages/authentication/SignupPage';
 import ForgotPasswordPage from './pages/ForgotPasswordPage';

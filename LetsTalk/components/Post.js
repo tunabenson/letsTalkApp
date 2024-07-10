@@ -10,8 +10,8 @@ import { navTo } from '../api/utils';
 import PopupMenu from './PopupMenu';
 
 const Post = (props) => {
-  const [liked, setLiked] = useState(false);
-  const [disliked, setDisliked] = useState(false);
+  const [liked, setLiked] = useState( props?.liked|| false);
+  const [disliked, setDisliked] = useState(props?.disliked|| false);
   const [numLikes, setNumLikes] = useState(props.item.likes);
   const [numDislikes, setNumDislikes] = useState(props.item.dislikes);
   const [modalVisible, setModalVisible] = useState(false);
@@ -41,10 +41,18 @@ const Post = (props) => {
 
   const fetchInitialData = useCallback(async () => {
     try {
-      const likedStatus = await getLikedStatus();
-      const dislikedStatus = await getDislikedStatus();
-      setLiked(likedStatus);
-      setDisliked(dislikedStatus);
+      let likedStatus;
+      let dislikedStatus;
+      if(props?.liked===undefined){
+       likedStatus = await getLikedStatus();
+       setLiked(likedStatus);
+      }
+      if(props?.disliked===undefined){
+       dislikedStatus = await getDislikedStatus();
+       setDisliked(dislikedStatus);
+      }
+    
+     
     } catch (error) {
       console.error('Error fetching initial data:', error);
     }
@@ -117,7 +125,7 @@ const Post = (props) => {
     >
       {item.biasEvaluation && <BiasBar biasEvaluation={item.biasEvaluation} />}
       <View className="absolute top-2 right-3 flex-row items-center">
-        <TouchableOpacity onPress={() => {setModalVisible(true)}}>
+        <TouchableOpacity hitSlop={30} onPress={() => {setModalVisible(true)}}>
           <Entypo name="dots-three-horizontal" size={24} color="gray" />
         </TouchableOpacity>
       </View>
