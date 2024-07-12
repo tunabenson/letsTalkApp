@@ -8,6 +8,11 @@ Welcome to the LetsTalk app! This guide will help you set up and run the project
 Before you begin, ensure you have the following installed:
 - Node.js (Download [here](https://nodejs.org/))
 - Expo CLI (`npm install -g expo-cli`)
+     or if using MacOS install locally:
+```bash
+cd letsTalkApp/LetsTalk
+npm i expo-cli
+```
 
 ## Setup
 
@@ -34,12 +39,12 @@ Follow these steps to get your development environment set up:
    ```bash
    npx expo start
    ```
-   This command will start the Expo developer tools in your browser.
+   This command will start the Expo developer tools in console.
 
 ## Running the App
 
 Once you start the application with Expo, you can:
-- **Run on iOS Simulator/Android Emulator**: Click on `Run on iOS simulator` or `Run on Android emulator` in the Expo developer tools opened in the browser.
+- **Run on iOS Simulator/Android Emulator**: Click on `Run on iOS simulator` or `Run on Android emulator` in the Expo developer tools.
 - **Run on Your Device**: Scan the QR code with the Expo Go app (available in the App Store and Google Play) on your iOS or Android device.
 
 ## Troubleshooting
