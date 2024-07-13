@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Modal, Text, View, Image, TouchableOpacity } from 'react-native';
 import { WebView } from 'react-native-webview';
-import { getArticleTitleFromURL } from '../api/firebaseConfig';
+import { getArticleTitleFromURL } from '../../api/firebaseConfig';
 import { AntDesign } from '@expo/vector-icons';
 function Article({url, onArticleFetch}) {
   const [modalVisible, setModalVisible] = useState(false);

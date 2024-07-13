@@ -10,7 +10,13 @@ import algoliasearch from "algoliasearch";
 // For Firebase JS SDK v7.20.0 and later, measurementId is optional
 
 const firebaseConfig = {
-  //paste config in here..
+  apiKey: "AIzaSyClM0A71FzMh5hnxVoa0Meu2FUP2rF14BY",
+  authDomain: "letstalk-e7a23.firebaseapp.com",
+  projectId: "letstalk-e7a23",
+  storageBucket: "letstalk-e7a23.appspot.com",
+  messagingSenderId: "778362832452",
+  appId: "1:778362832452:web:5e268785fd76e242ff1e11",
+  measurementId: "G-3QB3TRV9H0"
 };
 
 // Initialize Firebase
@@ -21,7 +27,7 @@ export const auth=initializeAuth(app, {persistence:getReactNativePersistence(Asy
 
 export const storage= getStorage(app);
 
-export const searchClient= algoliasearch(); //require: aloglia appID and algolia search key
+export const searchClient= algoliasearch('GQZGLJWQVJ','305db113298fb6ea6a615192fbf59ced');
 
 export const db= initializeFirestore(app, {cacheSizeBytes: CACHE_SIZE_UNLIMITED});
 
@@ -73,8 +79,7 @@ export async function getArticleTitleFromURL(url){
   const getTitle= httpsCallable(functions, 'getArticleTitle'); 
   try {
     const response= await getTitle(url);
-    const article= {...response.data, link:url }
-    return article; 
+    return {...response.data, link:url }
   } catch (error) {
     console.error('Error fetching title:', error);
   }

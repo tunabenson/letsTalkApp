@@ -2,12 +2,13 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { TouchableOpacity, Text, View, Pressable, Modal, TouchableWithoutFeedback, TextInput, Alert } from 'react-native';
 import { FontAwesome, Entypo } from '@expo/vector-icons';
 import { Timestamp, getDoc, doc, setDoc, deleteDoc, collection, getCountFromServer, updateDoc } from 'firebase/firestore';
-import { auth, db, deletePost } from '../api/firebaseConfig';
-import CommentInput from './CommentInput';
+import { auth, db, deletePost } from '../../api/firebaseConfig';
+import CommentInput from './deprecated/CommentInput';
 import BiasBar from './BiasBar';
 import Article from './Article';
-import { navTo } from '../api/utils';
-import PopupMenu from './PopupMenu';
+import { navTo } from '../../api/utils';
+import PopupMenu from './popupMenu/PopupMenu';
+import Interaction from './Interaction';
 
 const Post = (props) => {
   const [liked, setLiked] = useState( props?.liked|| false);
@@ -51,8 +52,8 @@ const Post = (props) => {
        dislikedStatus = await getDislikedStatus();
        setDisliked(dislikedStatus);
       }
-    
-     
+
+
     } catch (error) {
       console.error('Error fetching initial data:', error);
     }
@@ -143,26 +144,20 @@ const Post = (props) => {
 
       <Text className="absolute top-3 right-11 text-base font-bold text-black">#{item?.forum}</Text>
       <Text className="text-base text-gray-800 pb-2 mt-5">{item?.text}</Text>
-     
-   
+
+
+
 
         <View>
           <Text className="text-sm text-gray-500 self-end">
             {!props.fromSearching ? new Date(item?.date?.seconds * 1000).toLocaleDateString() : item.date.toLocaleDateString()}
           </Text>
-          <View className="flex-row items-center mt-2">
-            <TouchableOpacity hitSlop={25} onPress={toggleLike} className="flex-row items-center mr-3">
-              <FontAwesome name="thumbs-up" size={20} color={liked ? '#4CAF50' : 'gray'} />
-              <Text className={`ml-1 text-sm ${liked ? 'text-green-500' : 'text-gray-500'}`}>{numLikes}</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity hitSlop={25} onPress={toggleDislike} className="flex-row items-center">
-              <FontAwesome name="thumbs-down" size={20} color={disliked ? '#F44336' : 'gray'} />
-              <Text className={`ml-1 text-sm ${disliked ? 'text-red-500' : 'text-gray-500'}`}>{numDislikes}</Text>
-            </TouchableOpacity>
-          </View>
+          <View>
+          <Interaction toggleLike={()=>toggleLike()} toggleDislike={()=>toggleDislike()} liked={liked} disliked={disliked}/>
 
           <CommentInput itemPath={item.id} />
+        </View>
+
           {modalVisible &&(
             <PopupMenu  isUser={isPostOwner} text={item.text} modalVisible={true} postId={id} onClose={()=>setModalVisible(false)}/>)
           }

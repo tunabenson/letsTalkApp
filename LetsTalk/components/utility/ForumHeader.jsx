@@ -1,7 +1,7 @@
 import React  from 'react';
 import { TouchableOpacity, Text, View, Pressable, Modal, TouchableWithoutFeedback, TextInput } from 'react-native';
 import { FontAwesome, Entypo } from '@expo/vector-icons';
-import CommentInput from './CommentInput';
+import CommentInput from '../posts/deprecated/CommentInput';
 
 export const ForumHeader=()=>{
     return (

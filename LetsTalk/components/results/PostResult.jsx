@@ -1,6 +1,6 @@
 import React from 'react'
 import { Pressable, Text, TouchableOpacity, View } from 'react-native'
-import BiasBar from '../BiasBar'
+import BiasBar from '../posts/BiasBar'
 import { Entypo } from '@expo/vector-icons'
 
 function PostResult(props) {
@@ -20,9 +20,8 @@ function PostResult(props) {
           activeOpacity={0.7}
         >
           {item.biasEvaluation && 
-          <View className=''>
+
           <BiasBar biasEvaluation={item.biasEvaluation} />
-          </View>
           }
             <View className="flex-shrink-0">
               <Pressable
