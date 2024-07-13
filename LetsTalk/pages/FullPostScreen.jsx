@@ -1,18 +1,18 @@
 import { FontAwesome } from '@expo/vector-icons';
 import React from 'react'
 import { TouchableOpacity, View } from 'react-native';
-import Post from '../components/Post';
-import CommentList from '../components/CommentList';
+import Post from '../components/posts/Post';
+import CommentList from '../components/posts/deprecated/CommentList';
 export const FullPostScreen = ({ route, navigation }) => {
     const { item, fromAccount, liked, disliked } = route.params;
 
   
     return (
-      <View className="flex-1 bg-lightblue-500 pt-5">
+      <View className="flex-1 bg-lightblue-500 pt-10">
         <TouchableOpacity
-          className="absolute top-5 left-2 mb-10 p-4"
+          className="absolute top-9 left-2 mb-10 p-4"
           onPress={() => navigation.goBack()}
-          hitSlop={15}
+          hitSlop={30}
         >
           <FontAwesome name="arrow-left" size={24} color="white" />
         </TouchableOpacity>

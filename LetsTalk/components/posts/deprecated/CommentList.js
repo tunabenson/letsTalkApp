@@ -5,6 +5,11 @@ import Comment from './Comment';
 // Example data for comments
 let commentsData = [];
 
+ /**
+  * a component to render responses to posts
+  * @deprecated as of 7/11/2024
+  */
+
 class CommentList extends PureComponent {
   render() {
     return (

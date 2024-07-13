@@ -3,7 +3,7 @@ import { View, Text, TouchableOpacity, ActivityIndicator, Alert } from 'react-na
 import { AntDesign, Entypo, Ionicons } from '@expo/vector-icons';
 import WebView from 'react-native-webview';
 import { createStackNavigator } from '@react-navigation/stack';
-import Article from '../components/Article';
+import Article from '../components/posts/Article';
 import { auth, createPost } from '../api/firebaseConfig';
 import { ScrollView, Switch, TextInput } from 'react-native-gesture-handler';
 import AwesomeAlert from 'react-native-awesome-alerts';
@@ -17,7 +17,7 @@ const PostCreationPage = ({ navigation, route }) => {
   const { url } = route.params;
   const [forum, setForum] = useState('');
   const [content, setContent] = useState('');
-  const [isPostnig, setIsPosting] = useState(false);
+  const [isPosting, setIsPosting] = useState(false);
   const [usePoliticalAnalysis, setUsePoliticalAnalysis] = useState(false);
   const [alertVisible, setAlertVisible] = useState(false);
   const [alertData, setAlertData] = useState({ title: '', message: '', confirmButton: 'OK', onConfirm: () => {} });

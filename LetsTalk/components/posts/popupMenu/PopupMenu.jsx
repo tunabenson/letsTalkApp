@@ -2,8 +2,9 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Modal, Text, TextInput, TouchableOpacity, TouchableWithoutFeedback, View } from 'react-native';
 import { FontAwesome, FontAwesome5 } from '@expo/vector-icons';
 import LottieView from 'lottie-react-native';
-import { deletePost } from '../api/firebaseConfig';
+import { deletePost } from '../../../api/firebaseConfig';
 import AwesomeAlert from 'react-native-awesome-alerts';
+import PopupOption from './PopupOption';
 
 function PopupMenu({ modalVisible, text, isUser, onClose, postId }) {
   const [visible, setVisible] = useState(modalVisible);
@@ -18,7 +19,6 @@ function PopupMenu({ modalVisible, text, isUser, onClose, postId }) {
   };
 
   const reportPost = async () => {
-    
     setPlayAnimationReport((prev) => !prev);
     setTimeout(() => {onClose()}, 2000); // delay to allow animation to play
   };
@@ -68,6 +68,8 @@ function PopupMenu({ modalVisible, text, isUser, onClose, postId }) {
   };
 
   const handleDelete = async () => {
+    setVisible(false);
+
     setAlertConfig({
       show: true,
       title: 'Confirm Deletion',
@@ -81,7 +83,7 @@ function PopupMenu({ modalVisible, text, isUser, onClose, postId }) {
       onConfirmPressed: async () => {
         try {
           await deletePost(postId);
-          setVisible(false);
+          onClose();
         } catch (error) {
           console.error('Error deleting post:', error);
           setAlertConfig({
@@ -91,7 +93,7 @@ function PopupMenu({ modalVisible, text, isUser, onClose, postId }) {
             showConfirmButton: true,
             confirmText: 'OK',
             confirmButtonColor: '#DD6B55',
-            onConfirmPressed: () => setShowAlert(false)
+            onConfirmPressed: () => {setShowAlert(false); onClose()}
           });
           setShowAlert(true);
         }
@@ -115,29 +117,45 @@ function PopupMenu({ modalVisible, text, isUser, onClose, postId }) {
                   <View>
                     {isUser && (
                       <View>
-                        <TouchableOpacity className="p-2 flex-row" onPress={() => setEditModalVisible(true)}>
-                          <FontAwesome5 name="edit" size={24} color="blue" />
-                          <Text className="text-blue-600 text-xl font-semibold ml-2">Edit Post</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity className="p-2 mt-2 flex-row" onPress={handleDelete}>
-                          <FontAwesome5 name="trash" size={24} color="red" />
-                          <Text className="text-red-600 text-lg font-semibold ml-2"> Delete Post</Text>
-                        </TouchableOpacity>
+                        <PopupOption style='p-2 flex-row'
+                         handler={()=>{setVisible(false);setEditModalVisible(true)}}
+                        icon={<FontAwesome5 name="edit" size={24} color="blue" />}
+                        text='Edit Post'
+                        textStyle='text-blue-600 text-xl font-semibold ml-2'
+                        />
+
+                        <PopupOption style='p-2 mt-2 flex-row'
+                         handler={()=>handleDelete()}
+                        icon={<FontAwesome5 name="trash" size={24} color="red" />}
+                        text='Delete Post'
+                        textStyle='text-red-600 text-xl font-semibold ml-2'
+                        />
                       </View>
                     )}
-                    <TouchableOpacity className="p-2 mt-2 flex-row" onPress={reportPost}>
-                      <FontAwesome5 name="flag" size={24} color="red" />
-                      <Text className="text-red-600 text-lg font-semibold ml-2"> Report Post</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity className="p-2 mt-2 flex-row" onPress={handleClose}>
-                      <FontAwesome name="close" size={24} color="gray" />
-                      <Text className="text-gray-600 text-lg font-semibold ml-4">Cancel</Text>
-                    </TouchableOpacity>
+                      <PopupOption style='p-2 mt-2 flex-row'
+                         handler={()=>reportPost()}
+                        icon={<FontAwesome5 name="flag" size={24} color="red" />}
+                        text='Report Post'
+                        textStyle='text-red-600 text-xl font-semibold ml-2'
+                    />
+                    <PopupOption style='p-2 mt-2 flex-row'
+                         handler={()=>console.log('clicked add features')}
+                        icon={<FontAwesome name="info-circle" size={24} color="gray" />}
+                        text='More Information'
+                        textStyle='text-gray-500 text-xl font-semibold ml-2'
+                    />
+
+                    <PopupOption style='p-2 mt-1 flex-row'
+                         handler={()=>handleClose()}
+                        icon={<FontAwesome name="close" size={24} color="gray" />}
+                        text='Cancel'
+                        textStyle='text-gray-600 text-xl font-semibold ml-2'
+                      />
                   </View>
                 ) : (
                   <LottieView
                     autoPlay={true}
-                    source={require('../animations/report-animation.json')}
+                    source={require('../../../assets/animations/report-animation.json')}
                     loop={false}
                     style={{ width: 150, height: 150, alignSelf: 'center' }}
                   />
@@ -151,11 +169,12 @@ function PopupMenu({ modalVisible, text, isUser, onClose, postId }) {
       <Modal
         transparent={true}
         visible={editModalVisible}
-        onRequestClose={() => setEditModalVisible(false)}
+        onRequestClose={() => onClose()}
       >
-        <TouchableWithoutFeedback onPress={() => setEditModalVisible(false)}>
-          <View className="flex-1 justify-center items-center bg-transparent bg-opacity-50">
-            <View className="w-64 bg-white rounded-lg p-4">
+        <TouchableWithoutFeedback onPress={() => onClose()}>
+          <View className="flex-1">
+            <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.3)' }}>
+              <View className="bg-white p-4 rounded-lg w-11/12 mb-2">
               <TextInput
                 value={editText}
                 onChangeText={(text) => setEditText(text)}
@@ -164,16 +183,12 @@ function PopupMenu({ modalVisible, text, isUser, onClose, postId }) {
                 multiline={true}
                 numberOfLines={4}
               />
-              <TouchableOpacity onPress={saveEdit} className="bg-blue-500 rounded-md p-2">
+              <TouchableOpacity onPress={saveEdit} className="bg-lightblue-500 rounded-md p-2">
                 <Text className="text-center text-white font-medium">Save</Text>
-                <LottieView
-                  autoPlay={true}
-                  source={require('../animations/loading-animation.json')}
-                  loop={false}
-                  style={{ width: 100, height: 100 }}
-                />
               </TouchableOpacity>
+              {/** TODO: add posting animation */}
             </View>
+          </View>
           </View>
         </TouchableWithoutFeedback>
       </Modal>
