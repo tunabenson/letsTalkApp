@@ -1,12 +1,17 @@
 import { FontAwesome } from '@expo/vector-icons';
-import React from 'react'
+import React, { useEffect } from 'react'
 import { TouchableOpacity, View } from 'react-native';
-import Post from '../components/posts/Post';
-import CommentList from '../components/posts/deprecated/CommentList';
+import Post from '../../components/posts/Post'
+import CommentList from '../../components/posts/deprecated/CommentList';
+import { retrievePost } from './FullPostHandler';
 export const FullPostScreen = ({ route, navigation }) => {
-    const { item, fromAccount, liked, disliked } = route.params;
+    const data = route.params;
+    useEffect(()=>{
+      if(data?.id){
+        retrievePost(id)
+      }
+    })
 
-  
     return (
       <View className="flex-1 bg-lightblue-500 pt-10">
         <TouchableOpacity

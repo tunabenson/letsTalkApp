@@ -19,10 +19,7 @@ function PostResult(props) {
           onPress={onPressHandler}
           activeOpacity={0.7}
         >
-          {item.biasEvaluation && 
-
-          <BiasBar biasEvaluation={item.biasEvaluation} />
-          }
+        
             <View className="flex-shrink-0">
               <Pressable
                 hitSlop={15}
@@ -32,8 +29,12 @@ function PostResult(props) {
                 <Text className="text-lg font-semibold text-amber-700">@{item.username}</Text>
               </Pressable>
             </View>
-          <Text className="absolute top-3 right-11 text-base font-bold text-black">#{item?.forum}</Text>
-          <Text className="text-base text-gray-800 pb-2 mt-5">{item?.text}</Text>        
+          <Text className="absolute top-3 right-4 text-base font-bold text-black">#{item?.forum}</Text>
+          <Text className="text-base text-gray-800 pb-2 mt-5">{item?.text}</Text>     
+            {item.biasEvaluation && 
+            <BiasBar className="absolute right-3 bottom-6 " biasEvaluation={item.biasEvaluation} />
+        
+          }   
         </TouchableOpacity>
   )
 }

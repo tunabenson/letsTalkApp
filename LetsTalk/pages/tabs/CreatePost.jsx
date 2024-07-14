@@ -3,8 +3,8 @@ import { View, Text, TouchableOpacity, ActivityIndicator, Alert } from 'react-na
 import { AntDesign, Entypo, Ionicons } from '@expo/vector-icons';
 import WebView from 'react-native-webview';
 import { createStackNavigator } from '@react-navigation/stack';
-import Article from '../components/posts/Article';
-import { auth, createPost } from '../api/firebaseConfig';
+import Article from '../../components/posts/Article';
+import { auth, createPost } from '../../api/firebaseConfig';
 import { ScrollView, Switch, TextInput } from 'react-native-gesture-handler';
 import AwesomeAlert from 'react-native-awesome-alerts';
 
