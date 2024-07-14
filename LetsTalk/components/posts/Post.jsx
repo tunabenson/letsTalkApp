@@ -124,12 +124,18 @@ const Post = (props) => {
       onPress={() => navigation.navigate(navTo(fromAccount), { item, liked, disliked })}
       activeOpacity={0.7}
     >
-      {item.biasEvaluation && <BiasBar biasEvaluation={item.biasEvaluation} />}
+      {item.biasEvaluation && <BiasBar biasEvaluation={item.biasEvaluation}  className={"absolute right-3 bottom-24 flex-row h-3 rounded-sm overflow-hidden border border-black w-1/3 "}/>}
+
+
+
       <View className="absolute top-2 right-3 flex-row items-center">
         <TouchableOpacity hitSlop={30} onPress={() => {setModalVisible(true)}}>
           <Entypo name="dots-three-horizontal" size={24} color="gray" />
         </TouchableOpacity>
       </View>
+
+
+
       {!fromAccount && (
         <View className="flex-shrink-0">
           <Pressable
@@ -150,7 +156,7 @@ const Post = (props) => {
 
         <View>
           <Text className="text-sm text-gray-500 self-end">
-            {!props.fromSearching ? new Date(item?.date?.seconds * 1000).toLocaleDateString() : item.date.toLocaleDateString()}
+            {new Date(item?.date?.seconds * 1000).toLocaleDateString()}
           </Text>
           <View>
           <Interaction toggleLike={()=>toggleLike()} toggleDislike={()=>toggleDislike()} liked={liked} disliked={disliked}/>

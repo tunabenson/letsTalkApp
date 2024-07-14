@@ -6,11 +6,10 @@ import { createStackNavigator } from '@react-navigation/stack';
 import Home from './pages/tabs/Home';
 import LoginPage from './pages/authentication/Login';
 import SignUpPage from './pages/authentication/SignupPage';
-import ForgotPasswordPage from './pages/ForgotPasswordPage';
+import ForgotPasswordPage from './pages/authentication/ForgotPasswordPage';
 import { auth, db } from './api/firebaseConfig';
 import { onAuthStateChanged } from 'firebase/auth';
 import * as SplashScreen from 'expo-splash-screen';
-import { collection, getDocs, limit, orderBy, query } from 'firebase/firestore';
 
 const Stack = createStackNavigator();
 SplashScreen.preventAutoHideAsync();

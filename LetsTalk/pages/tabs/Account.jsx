@@ -1,14 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, Image, FlatList, Pressable } from 'react-native';
+import { View, Text, Image, FlatList, Pressable, Settings } from 'react-native';
 import { collection, getDocs, limit, orderBy, query, where } from 'firebase/firestore';
 import { auth, db } from '../../api/firebaseConfig';
 import Post from '../../components/posts/Post';
-import { signOut } from 'firebase/auth';
 import { createStackNavigator } from '@react-navigation/stack';
-import { FullPostScreen } from '../FullPostScreen';
-import { fetchLikeDislikeCounts } from '../../api/firebaseConfig';
+import { FullPostScreen } from '../ExpandedPosts/FullPostScreen';
 import LoadingPage from '../LoadingPage';
-
+import SettingsPage from '../Settings/SettingsPage';
 const fetchPostsByUsername = async (username) => {
   const postsQuery = query(collection(db, "posts"), where('username', '==', username), orderBy("date", 'desc'), limit(15));
   const snap = await getDocs(postsQuery);
@@ -65,9 +63,9 @@ const Account = ({ route, navigation }) => {
           {username === auth.currentUser.displayName && (
             <Pressable
               className="bg-red-500 p-2 rounded-md mt-4 w-24"
-              onPress={() => signOut(auth)}
+              onPress={() => navigation.navigate('settings')}
             >
-              <Text className="text-white text-center">Sign Out</Text>
+              <Text className="text-white text-center">Settings</Text>
             </Pressable>
           )}
         </View>
@@ -89,6 +87,7 @@ const ProfilePage = ({ route, navigation }) => (
     <Stack.Navigator initialRouteName={'ProfilePage'}>
       <Stack.Screen name="ProfilePage" component={Account} initialParams={route.params} options={{ headerShown: false }} />
       <Stack.Screen name="Full-Post" component={FullPostScreen} initialParams={{ fromAccount: true }} options={{ headerShown: false }}/>
+      <Stack.Screen name="settings" component={SettingsPage} initialParams={{ fromAccount: true }} options={{ headerShown: false }}/>
     </Stack.Navigator>
   </View>
 );

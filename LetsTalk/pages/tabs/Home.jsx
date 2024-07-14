@@ -4,13 +4,13 @@ import { createStackNavigator } from '@react-navigation/stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import ProfilePage from './Account';
-import { auth, db, fetchLikeDislikeCounts  } from '../../api/firebaseConfig';
+import { auth, db  } from '../../api/firebaseConfig';
  import Post from '../../components/posts/Post';
-import CreatePost from '../CreatePost';
+import CreatePost from './CreatePost';
 import { AntDesign } from '@expo/vector-icons';
-import { FullPostScreen } from '../FullPostScreen';
+import { FullPostScreen } from '../ExpandedPosts/FullPostScreen';
 import { collection, getDocs, limit, orderBy, query } from 'firebase/firestore';
-import { SearchStackPage }  from '../SearchPage';
+import { SearchStackPage }  from './SearchPage';
 import LoadingPage from '../LoadingPage';
 
 

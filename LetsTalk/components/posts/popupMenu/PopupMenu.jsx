@@ -4,7 +4,8 @@ import { FontAwesome, FontAwesome5 } from '@expo/vector-icons';
 import LottieView from 'lottie-react-native';
 import { deletePost } from '../../../api/firebaseConfig';
 import AwesomeAlert from 'react-native-awesome-alerts';
-import PopupOption from './PopupOption';
+import PopupOption from '../../utility/Option';
+import Option from '../../utility/Option';
 
 function PopupMenu({ modalVisible, text, isUser, onClose, postId }) {
   const [visible, setVisible] = useState(modalVisible);
@@ -117,14 +118,14 @@ function PopupMenu({ modalVisible, text, isUser, onClose, postId }) {
                   <View>
                     {isUser && (
                       <View>
-                        <PopupOption style='p-2 flex-row'
+                        <Option style='p-2 flex-row'
                          handler={()=>{setVisible(false);setEditModalVisible(true)}}
                         icon={<FontAwesome5 name="edit" size={24} color="blue" />}
                         text='Edit Post'
                         textStyle='text-blue-600 text-xl font-semibold ml-2'
                         />
 
-                        <PopupOption style='p-2 mt-2 flex-row'
+                        <Option style='p-2 mt-2 flex-row'
                          handler={()=>handleDelete()}
                         icon={<FontAwesome5 name="trash" size={24} color="red" />}
                         text='Delete Post'
@@ -132,20 +133,20 @@ function PopupMenu({ modalVisible, text, isUser, onClose, postId }) {
                         />
                       </View>
                     )}
-                      <PopupOption style='p-2 mt-2 flex-row'
+                      <Option style='p-2 mt-2 flex-row'
                          handler={()=>reportPost()}
                         icon={<FontAwesome5 name="flag" size={24} color="red" />}
                         text='Report Post'
                         textStyle='text-red-600 text-xl font-semibold ml-2'
                     />
-                    <PopupOption style='p-2 mt-2 flex-row'
+                    <Option style='p-2 mt-2 flex-row'
                          handler={()=>console.log('clicked add features')}
                         icon={<FontAwesome name="info-circle" size={24} color="gray" />}
                         text='More Information'
                         textStyle='text-gray-500 text-xl font-semibold ml-2'
                     />
 
-                    <PopupOption style='p-2 mt-1 flex-row'
+                    <Option style='p-2 mt-1 flex-row'
                          handler={()=>handleClose()}
                         icon={<FontAwesome name="close" size={24} color="gray" />}
                         text='Cancel'

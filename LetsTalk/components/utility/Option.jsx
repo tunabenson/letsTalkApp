@@ -8,7 +8,7 @@ import {TouchableOpacity,Text, View} from 'react-native'
  * @param {string} style- a className styling
  * @returns react JSX component to represent that option
  */
- const PopupOption=({text, icon, handler, style, textStyle})=> {
+ const Option=({text, icon, handler, style, textStyle})=> {
   return (
     <TouchableOpacity className={style} onPress={handler}>
             {icon}
@@ -17,4 +17,4 @@ import {TouchableOpacity,Text, View} from 'react-native'
 
   )
 }
-export default PopupOption;
+export default Option;

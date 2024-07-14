@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, Alert, KeyboardAvoidingView, Platform } from 'react-native';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
 import { sendPasswordResetEmail } from 'firebase/auth';
-import { auth } from '../api/firebaseConfig';
+import { auth } from '../../api/firebaseConfig';
 
 const ForgotPasswordPage = ({ navigation }) => {
   const [email, setEmail] = useState('');
