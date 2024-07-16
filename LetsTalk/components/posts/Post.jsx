@@ -4,19 +4,19 @@ import { FontAwesome, Entypo } from '@expo/vector-icons';
 import { Timestamp, getDoc, doc, setDoc, deleteDoc, collection, getCountFromServer, updateDoc } from 'firebase/firestore';
 import { auth, db, deletePost } from '../../api/firebaseConfig';
 import CommentInput from './deprecated/CommentInput';
-import BiasBar from './BiasBar';
-import Article from './Article';
+import BiasBar from './subcomponents/BiasBar';
+import Article from './subcomponents/Article';
 import { navTo } from '../../api/utils';
-import PopupMenu from './popupMenu/PopupMenu';
-import Interaction from './Interaction';
+import PopupMenu from './subcomponents/popupMenu/PopupMenu';
+import Interaction from './subcomponents/Interaction';
+import RenderedArticle from './subcomponents/RenderedArticle';
+import Reply from './subcomponents/Reply';
 
 const Post = (props) => {
-  const [liked, setLiked] = useState( props?.liked|| false);
-  const [disliked, setDisliked] = useState(props?.disliked|| false);
-  const [numLikes, setNumLikes] = useState(props.item.likes);
-  const [numDislikes, setNumDislikes] = useState(props.item.dislikes);
+  const [liked, setLiked] = useState( props?.liked);
+  const [disliked, setDisliked] = useState(props?.disliked);
   const [modalVisible, setModalVisible] = useState(false);
-
+  let yValue;
   const id = props.item.id;
 
   const getDislikedStatus = useCallback(async () => {
@@ -60,7 +60,7 @@ const Post = (props) => {
   }, [getLikedStatus, getDislikedStatus]);
 
   useEffect(() => {
-    if(!props?.fullScreen){
+     if(!props?.fullScreen){
     fetchInitialData();
     }
     else{
@@ -73,18 +73,15 @@ const Post = (props) => {
     try {
       if (liked) {
         await deleteDoc(doc(db, 'posts', id, 'likes', auth.currentUser.displayName));
-        setNumLikes((prev) => prev - 1);
       }
       else {
         await setDoc(doc(db, 'posts', id, 'likes', auth.currentUser.displayName), { time: Timestamp.now() });
-        setNumLikes((prev) => prev + 1);
       if (disliked) {
           await deleteDoc(doc(db, 'posts', id, 'dislikes', auth.currentUser.displayName));
           setDisliked(false);
-          setNumDislikes((prev) => prev - 1);
-      }
       }
       setLiked(!liked);
+      }
     } catch (error) {
       console.error('Error toggling like status:', error);
     }
@@ -94,18 +91,15 @@ const Post = (props) => {
     try {
       if (disliked) {
         await deleteDoc(doc(db, 'posts', id, 'dislikes', auth.currentUser.displayName));
-        setNumDislikes((prev) => prev - 1);
       } else {
         await setDoc(doc(db, 'posts', id, 'dislikes', auth.currentUser.displayName), { time: Timestamp.now() });
-        setNumDislikes((prev) => prev + 1);
-
         if (liked) {
           await deleteDoc(doc(db, 'posts', id, 'likes', auth.currentUser.displayName));
           setLiked(false);
-          setNumLikes((prev) => prev - 1);
         }
+        setDisliked(!disliked);
+
       }
-      setDisliked(!disliked);
     } catch (error) {
       console.error('Error toggling dislike status:', error);
     }
@@ -113,20 +107,33 @@ const Post = (props) => {
 
 
 
+
+
+
   const { item, navigation, fromAccount} = props;
   const isPostOwner = auth.currentUser && item.username === auth.currentUser.displayName;
 
 
+
+  const requestHandler=()=>{
+    const author=item.username;
+    const editDate= item?.lastEdited || item?.date;
+    return {author, editDate}
+  }
+
   return (
     <TouchableOpacity
-      disabled={props?.disabled}
+      disabled={props?.fullScreen}
       className="m-2 p-4 bg-white border border-lightblue-500 rounded-lg shadow-lg"
-      onPress={() => navigation.navigate(navTo(fromAccount), { item, liked, disliked })}
+      onPress={(event) => {
+         if(!props?.fullScreen){ 
+          navigation.navigate(navTo(fromAccount), { item, liked, disliked, yValue:event.nativeEvent.pageY-50 });
+      }
+    }
+    }
       activeOpacity={0.7}
     >
-      {item.biasEvaluation && <BiasBar biasEvaluation={item.biasEvaluation}  className={"absolute right-3 bottom-24 flex-row h-3 rounded-sm overflow-hidden border border-black w-1/3 "}/>}
-
-
+    
 
       <View className="absolute top-2 right-3 flex-row items-center">
         <TouchableOpacity hitSlop={30} onPress={() => {setModalVisible(true)}}>
@@ -151,25 +158,36 @@ const Post = (props) => {
       <Text className="absolute top-3 right-11 text-base font-bold text-black">#{item?.forum}</Text>
       <Text className="text-base text-gray-800 pb-2 mt-5">{item?.text}</Text>
 
+      {item?.article && props?.fullScreen && (
+            <RenderedArticle article={item.article}/>
+          )}
 
 
-
-        <View>
+        <>
           <Text className="text-sm text-gray-500 self-end">
             {new Date(item?.date?.seconds * 1000).toLocaleDateString()}
           </Text>
-          <View>
-          <Interaction toggleLike={()=>toggleLike()} toggleDislike={()=>toggleDislike()} liked={liked} disliked={disliked}/>
+          {item?.biasEvaluation && (
+        <BiasBar biasEvaluation={item.biasEvaluation}  style="align-bottom  mt-3 mb-3 flex-row h-3 rounded-sm overflow-hidden border border-black w-1/3 "/>
+        )}
 
-          <CommentInput itemPath={item.id} />
-        </View>
+          <>
+          <Interaction toggleLike={()=>toggleLike()} toggleDislike={()=>toggleDislike()} liked={liked} disliked={disliked} />
+
+      
+
+         {props?.fullScreen && ( <Reply item={item}/>)}
+        </>
 
           {modalVisible &&(
-            <PopupMenu  isUser={isPostOwner} text={item.text} modalVisible={true} postId={id} onClose={()=>setModalVisible(false)}/>)
+            <PopupMenu  isUser={isPostOwner} text={item.text} modalVisible={true} postId={id} onClose={()=>setModalVisible(false)} requestInfo={()=>requestHandler()}/>)
           }
+        
 
 
-        </View>
+
+        </>
+
 
     
     </TouchableOpacity>

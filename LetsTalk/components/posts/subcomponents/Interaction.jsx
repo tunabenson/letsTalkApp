@@ -12,10 +12,11 @@ import { Text, TouchableOpacity, View } from 'react-native';
  */
 
 
-function Interaction({toggleDislike, toggleLike, liked, disliked}) {
+function Interaction({toggleDislike, toggleLike, liked, disliked, children}) {
   //TODO: implement animations for liking and disliking functionality.
   return (
-    <View className="flex-row items-center mt-2">
+    <View className="flex-row items-center mt-2 mb-3">
+      {children}
     <TouchableOpacity hitSlop={25} onPress={toggleLike} className="flex-row items-center mr-3">
       <FontAwesome name="thumbs-up" size={20} color={liked ? '#4CAF50' : 'gray'} />
     </TouchableOpacity>

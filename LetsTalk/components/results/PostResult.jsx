@@ -1,14 +1,12 @@
 import React from 'react'
 import { Pressable, Text, TouchableOpacity, View } from 'react-native'
-import BiasBar from '../posts/BiasBar'
+import BiasBar from '../posts/subcomponents/BiasBar'
 import { Entypo } from '@expo/vector-icons'
 
 function PostResult(props) {
     const item=props.item;
     const onPressHandler=async()=>{
-      //Retrieve neccasary post information
-      //then nav
-      props.navigation.navigate('postPage', { id:item.objectID })
+      props.navigation.navigate('postPage', { id:item.path })
     }
 
 
