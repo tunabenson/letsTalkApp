@@ -33,7 +33,7 @@ Follow these steps to get your development environment set up:
    - The app requires a Firebase configuration to connect to Firebase services.
    - You will receive an error related to Firebase connection on initial startup.
    - To resolve this, please email `katz.ofek23@gmail.com` to request the Firebase configuration file.
-   - Once you receive the configuration, paste it into the `firebaseConfig.js` file in the project directory.
+   - Once you receive the configuration, paste it into the `LetsTalk/api/firebaseConfig.js` file in the project directory.
 
 4. **Start the Application**
    ```bash
