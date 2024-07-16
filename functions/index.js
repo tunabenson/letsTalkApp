@@ -17,12 +17,12 @@ const palmClient = new TextServiceClient({
   authClient: new GoogleAuth().fromAPIKey(functions.config().palm.api_key),
 });
 
-
-//TODO: reconsider the use of this, maybe do it with postCreation request?
-//PROs: less calls, CONS: longer wait time before response, no edit check for bias
 exports.BiasEvaluation= functions.firestore
   .document('posts/{postId}')
-  .onWrite(async (change, context) => {
+  .onCreate(async (change, context) => {
+    if(!change.after.data().usePoliticalAnalysis){
+      return null;
+    }
     const newValue = change.after.data();
     if(change.before.get('text')===change.after.get('text'))return;
     // Check if the document was created or updated and contains the 'text' field
@@ -40,28 +40,29 @@ Options:
  -center
  -right
 
-Please print each category name along with a number from 0-1 indicating the strength of that category. 
+Please print each category name along with a number from 0-1000 indicating the strength of that category. 
 format exactly like this:  "right:x, center:y, left:z "
 
 Text: ${text}
+
+you may use context clues like the forum name:${newValue.forum} to evaluate this
 `;
 
     try {
       // Call the PaLM API
       const [response] = await palmClient.generateText({
 
-        model:'models/text-bison-001', // Use your specific model
+        model:'models/text-bison-001',
         prompt: {
           text: customPrompt,
         },
-        temperature: 0.1, // Adjust temperature as needed
-        candidateCount: 1, // Number of responses to generate
+        temperature: 0.3, 
+        candidateCount: 3, 
       });
 
-      // Extract the generated text from the API response
-      const generatedText = response.candidates[0].output;
-
-      if(generatedText && generatedText!=='not related'){
+      const generatedText = response.candidates[2].output;
+      
+      if(generatedText){
         const biasEvaluation = {};
         generatedText.split(',').forEach(pair => {
           const [key, value] = pair.split(':').map(part => part.trim());
@@ -69,12 +70,12 @@ Text: ${text}
         });
         await change.after.ref.update({ generatedText, biasEvaluation});
     }
-    else{
+    else{ 
         await change.after.ref.update({generatedText:'not related'});
     }
-
+    
       // Update the Firestore document with the generated text
-
+    
 
       console.log('Document updated with generated text:', generatedText);
     } catch (error) {
@@ -88,16 +89,17 @@ Text: ${text}
   exports.createPost = functions
   .runWith({
     timeoutSeconds: 540,
+    enforceAppCheck:true,
     memory: '2GB',
   })
   .https.onCall(async (data, context) => {
-    const currentUser = context.auth;
+    const currentUser = context.auth; 
     if (!currentUser) {
       throw new functions.https.HttpsError('unauthenticated', 'The function must be called while authenticated.');
     }
 
     const text = data.text;
-
+    
     // Check toxicity
     try {
       const result = await perspective.analyze(text, {attributes: ['toxicity', 'IDENTITY_ATTACK', 'INSULT', 'THREAT']});
@@ -107,10 +109,10 @@ Text: ${text}
         }
       }
     } catch (error) {
-      console.error('Error evaluating toxicity:', error.message);
+      console.error('Error evaluating toxicity:', error.message); 
       throw new functions.https.HttpsError('internal', 'Error evaluating toxicity.');
     }
-
+    
     // Check if post is related to forum topic
 const customPrompt = `identify whether or not the text below is relevant and contributing to mature discussion to the forum below?
 
@@ -133,7 +135,7 @@ Forum: ${data.forum}`;
       });
 
       // Extract the generated text from the API response
-      const generatedText = response.candidates[0].output;
+      const generatedText = response.candidates[0]?.output;
 
       if (!generatedText || generatedText.trim() === 'no') {
         return {header: 'Declined', message: 'Sorry, your post is either not contributing or irrelevant to the forum'};
@@ -145,7 +147,8 @@ Forum: ${data.forum}`;
 
     // Add post to the database
     try {
-      await db.collection('posts').add({
+      
+      await db.collection(data.path).add({
         ...data,
         likeCount: 0,
         dislikeCount: 0,
@@ -157,6 +160,9 @@ Forum: ${data.forum}`;
       throw new functions.https.HttpsError('internal', 'Error saving post.');
     }
   });
+
+
+
 
 
 
@@ -176,7 +182,7 @@ exports.deletePost = functions
     const { postId } = data;
     const currentUser = context.auth;
     const user= (await getAuth().getUser(currentUser.token.uid));
-
+   
     // Check if the user is authenticated
     if (!currentUser) {
       throw new functions.https.HttpsError('unauthenticated', 'The function must be called while authenticated.');
@@ -225,7 +231,7 @@ exports.sendWelcomeEmail = functions.auth.user().onCreate(async (user) => {
 
     // Create email content
     const mailOptions = {
-      from: 'filler',
+      from: null, //TODO: change this
       to: email,
       subject: 'Glad to see you here!',
       html: `
@@ -238,14 +244,14 @@ exports.sendWelcomeEmail = functions.auth.user().onCreate(async (user) => {
     };
 
     const nodemailer = require('nodemailer');
-
+    
     const transporter = nodemailer.createTransport({
       service: 'gmail',
-
+    
       auth: {
-
-        user: 'filler',
-        pass: 'filler',
+        
+        user: null, //TODO: replace this
+        pass: null //TODO: replace this
       },
     });
 
@@ -256,66 +262,6 @@ exports.sendWelcomeEmail = functions.auth.user().onCreate(async (user) => {
     console.error('Error sending welcome email:', error);
   }
 });
-
-
-
-    exports.addLikeOnChange = functions.firestore
-        .document('posts/{postId}/likes/{likesId}')
-        .onWrite(async (change, context) => {
-            const postId = context.params.postId;
-
-            const postRef = admin.firestore().collection('posts').doc(postId);
-
-            let increment;
-            if (!change.before.exists) {
-                increment = admin.firestore.FieldValue.increment(1);
-            } else if (!change.after.exists) {
-                increment = admin.firestore.FieldValue.increment(-1);
-            } else {
-                return null;
-            }
-
-            try {
-                await postRef.update({ likeCount: increment });
-
-                console.log(`Post ${postId} updated with increment: ${increment}`);
-
-                return null;
-            } catch (error) {
-                console.error(`Error updating like count for post ${postId}:`, error);
-                return null;
-            }
-        });
-
-
-        exports.addDislikeOnChange = functions.firestore
-        .document('posts/{postId}/dislikes/{likesId}')
-        .onWrite(async (change, context) => {
-            const postId = context.params.postId;
-
-            const postRef = admin.firestore().collection('posts').doc(postId);
-
-            let increment;
-            if (!change.before.exists) {
-                increment = admin.firestore.FieldValue.increment(1);
-            } else if (!change.after.exists) {
-                increment = admin.firestore.FieldValue.increment(-1);
-            } else {
-                return null;
-            }
-
-            try {
-                await postRef.update({ dislikeCount: increment });
-
-                console.log(`Post ${postId} updated with increment: ${increment}`);
-
-                return null;
-            } catch (error) {
-                console.error(`Error updating dislike count for post ${postId}:`, error);
-                return null;
-            }
-        });
-
 
 
 
@@ -344,8 +290,8 @@ exports.resizeImage = functions.https.onCall(async (data, context) => {
         const filename = `${context.auth.token.uid}.png`;
 
         // Define the destination bucket and file path
-        const bucket = storage.bucket('profilepics');
-        const file = bucket.file(filename);
+        const bucket = storage.bucket('gs://letstalk-e7a23.appspot.com');
+        const file = bucket.file(`profilepic/${filename}`);
 
         // Upload the resized image to Cloud Storage
         await file.save(resizedImageBuffer, {
@@ -354,21 +300,23 @@ exports.resizeImage = functions.https.onCall(async (data, context) => {
             },
         });
 
-
+        
         const [url] = await file.getSignedUrl({
             action: 'read',
-            expires: '03-01-2500',
+            expires: '03-01-2500', 
+
         });
-        await admin.firestore(admin.app).collection('users').doc(context.auth.token.uid).update({"url": url})
+        await admin.firestore().collection('users').doc(context.auth.token.uid).update({"url": url})
 
     } catch (error) {
+        
         throw new functions.https.HttpsError('unknown', `Error processing image: ${error.message}`);
     }
 });
 
 
 
-//we use these agents for web scraping, use multiple to avoid getting blocking.
+//we use these agents for web scraping, use multiple to avoid getting blocking. 
 const userAgents = [
   "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36",
   "Mozilla/5.0 (Windows NT 10.0; WOW64; rv:54.0) Gecko/20100101 Firefox/54.0",
@@ -387,19 +335,14 @@ const parser = require('html-metadata-parser');
 exports.getArticleTitle=functions.https.onCall(async (data, context)=>{
   try {
     const agent=userAgents[Math.floor(Math.random() * userAgents.length)];
-
+    
     const result = await parser.parse(data.url, {headers:
           {'User-Agent': agent,
 }});
 
-const ogType = result.og && result.og.type;
-// Check Schema.org type
-const schemaType = result.jsonld && result.jsonld['@type'];
-
-const isArticle= ogType === 'article' || ['Article', 'NewsArticle', 'BlogPosting'].includes(schemaType);
 
 
-if(isArticle){
+
     const title = result.meta.title; // Access title from meta data
     let imageUrl = null;
 
@@ -410,14 +353,47 @@ if(isArticle){
     }
 
     return { title };
-  }
-  else{
-    throw new functions.https.HttpsError('Link provided was not an article', 'try again with an article');
-
-  }
+  
   } catch (error) {
     console.error('Failed to retrieve metadata:', error);
-    return null;
+    return {title:'unable to display article at this moment.',};
   }
 }
 );
+exports.checkUsernameAndEmailAvailability = functions.https.onCall(async (data, context) => {
+  const email = data.email;
+  const username = data.username;
+
+  if (!email || !username) {
+      throw new functions.https.HttpsError('invalid-argument', 'Email and username must be provided.');
+  }
+
+  let emailExists = false;
+  try {
+      const userRecord = await admin.auth().getUserByEmail(email);
+      if (userRecord) {
+          emailExists = true;
+      }
+  } catch (error) {
+      if (error.code !== 'auth/user-not-found') {
+          throw new functions.https.HttpsError('internal', 'Error checking email availability.');
+      }
+  }
+
+  // Check if username exists in Firestore in authentication service
+  const usernameQuerySnapshot = await db.collection('users').where('username', '==', username).get();
+  const usernameExists = !usernameQuerySnapshot.empty;
+
+  return {
+      emailExists: emailExists,
+      usernameExists: usernameExists
+  };
+
+});
+
+// const { onCustomEventPublished }= require('firebase-functions/v2/eventarc');
+// exports.onImageResized = onCustomEventPublished('firebase.extensions.storage-resize-images.v1.complete',
+// (event) => {
+//   console.log(event);
+// }
+// );

@@ -115,7 +115,7 @@ const SearchPage= ({ navigation }) => {
 
 
   return (
-    <View className="flex-1 bg-lightblue-500 rounded-lg shadow-lg">
+    <View className="flex-1 bg-lightblue-500 shadow-lg">
       <View className=" m-4 mt-10 p-5 justify-center bg-white rounded-xl">
         {/* {initiate?( */}
           <InstantSearch  searchClient={searchClient} indexName={searchType}>

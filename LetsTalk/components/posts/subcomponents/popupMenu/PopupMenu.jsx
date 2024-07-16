@@ -2,18 +2,21 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Modal, Text, TextInput, TouchableOpacity, TouchableWithoutFeedback, View } from 'react-native';
 import { FontAwesome, FontAwesome5 } from '@expo/vector-icons';
 import LottieView from 'lottie-react-native';
-import { deletePost } from '../../../api/firebaseConfig';
+import { auth, deletePost, fetchLikeDislikeCounts } from '../../../../api/firebaseConfig';
 import AwesomeAlert from 'react-native-awesome-alerts';
-import PopupOption from '../../utility/Option';
-import Option from '../../utility/Option';
+import PopupOption from '../../../utility/Option';
+import Option from '../../../utility/Option';
 
-function PopupMenu({ modalVisible, text, isUser, onClose, postId }) {
+function PopupMenu({ modalVisible, text, isUser, onClose, postId , requestInfo }) {
+
   const [visible, setVisible] = useState(modalVisible);
   const [editModalVisible, setEditModalVisible] = useState(false);
   const [editText, setEditText] = useState(text);
   const [playAnimationReport, setPlayAnimationReport] = useState(false);
   const [showAlert, setShowAlert] = useState(false);
   const [alertConfig, setAlertConfig] = useState({});
+  const [infoScreenVisible, setInfoScreenVisible] = useState(false);
+  const [infoScreenConfig, setInfoScreenConfig] = useState();
 
   const handleClose = () => {
     onClose();
@@ -103,6 +106,17 @@ function PopupMenu({ modalVisible, text, isUser, onClose, postId }) {
     setShowAlert(true);
   };
 
+
+
+  const handleMoreInfo=async()=>{
+    setVisible(false);
+    const data= await fetchLikeDislikeCounts(postId);
+    const additional=requestInfo()
+    
+    setInfoScreenConfig({likes:data.likes, dislikes:data.dislikes, author: additional.author, editDate: additional.editDate});
+    setInfoScreenVisible(true);
+  }
+
   return (
     <View>
       <Modal
@@ -140,7 +154,7 @@ function PopupMenu({ modalVisible, text, isUser, onClose, postId }) {
                         textStyle='text-red-600 text-xl font-semibold ml-2'
                     />
                     <Option style='p-2 mt-2 flex-row'
-                         handler={()=>console.log('clicked add features')}
+                         handler={()=>handleMoreInfo()}
                         icon={<FontAwesome name="info-circle" size={24} color="gray" />}
                         text='More Information'
                         textStyle='text-gray-500 text-xl font-semibold ml-2'
@@ -156,7 +170,7 @@ function PopupMenu({ modalVisible, text, isUser, onClose, postId }) {
                 ) : (
                   <LottieView
                     autoPlay={true}
-                    source={require('../../../assets/animations/report-animation.json')}
+                    source={require('../../../../assets/animations/report-animation.json')}
                     loop={false}
                     style={{ width: 150, height: 150, alignSelf: 'center' }}
                   />
@@ -173,7 +187,6 @@ function PopupMenu({ modalVisible, text, isUser, onClose, postId }) {
         onRequestClose={() => onClose()}
       >
         <TouchableWithoutFeedback onPress={() => onClose()}>
-          <View className="flex-1">
             <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.3)' }}>
               <View className="bg-white p-4 rounded-lg w-11/12 mb-2">
               <TextInput
@@ -190,9 +203,41 @@ function PopupMenu({ modalVisible, text, isUser, onClose, postId }) {
               {/** TODO: add posting animation */}
             </View>
           </View>
-          </View>
         </TouchableWithoutFeedback>
       </Modal>
+
+
+      
+      <Modal transparent={true} visible={infoScreenVisible}>
+  <TouchableWithoutFeedback onPress={() => onClose()}>  
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.3)' }}>
+        <View className="bg-white p-4 rounded-lg w-11/12 mb-2">
+          <View className="flex-row justify-between items-center mb-4">
+            <Text className='text-3xl font-bold underline'>More Info</Text> 
+          </View>
+          <View className="flex-row justify-start items-center mb-4">
+            <View className="flex-row items-center">
+              <FontAwesome name="thumbs-up" size={20} color={'#4CAF50'} />
+              <Text className='text-xl text-green-500 font-semibold ml-2'>{infoScreenConfig?.likes}</Text>
+            </View>
+            <View className="flex-row items-center pl-3">
+              <FontAwesome name="thumbs-down" size={20} color={'#F44336'} />
+              <Text className='text-xl text-red-500 font-semibold ml-2'>{infoScreenConfig?.dislikes}</Text>
+            </View>
+          </View>
+          <View className="flex-row justify-start mb-4 ">
+            <Text className="text-xl font-medium">Last Edited:</Text>
+            <Text className="text-xl pl-4">{new Date(infoScreenConfig?.editDate?.seconds * 1000 + infoScreenConfig?.editDate?.nanoseconds / 1000000).toLocaleString()}</Text>
+          </View>
+          <View className="flex-row justify-start mb-4">
+            <Text className="text-xl font-medium">Author:</Text>
+            <Text className="text-xl pl-2">{infoScreenConfig?.author}</Text>
+          </View>
+        </View>
+      </View>
+  </TouchableWithoutFeedback>
+</Modal>
+
 
       <AwesomeAlert
         show={showAlert}

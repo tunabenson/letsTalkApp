@@ -1,36 +1,50 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, Pressable, TouchableOpacity, ActivityIndicator, KeyboardAvoidingView, Platform, Keyboard, Alert } from 'react-native';
+import { View, Text, TextInput, Pressable, TouchableOpacity, ActivityIndicator, KeyboardAvoidingView, Platform, Keyboard } from 'react-native';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
 import { auth, db, storage } from '../../api/firebaseConfig';
-import { signInWithEmailAndPassword, signOut, updateCurrentUser, updateProfile } from 'firebase/auth';
-import { getDownloadURL, ref } from 'firebase/storage';
-import { doc, updateDoc } from 'firebase/firestore';
-
-
-
+import { signInWithEmailAndPassword, signOut } from 'firebase/auth';
+import AwesomeAlert from 'react-native-awesome-alerts';
 
 const LoginPage = ({ navigation }) => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [hiddenPassword, setHiddenPassword] = useState(true);
   const [pressedLogin, setPressedLogin] = useState(false);
+  const [alertConfig, setAlertConfig] = useState({
+    showAlert: false,
+    title: '',
+    message: '',
+  });
+
+  const showAlert = (title, message) => {
+    setAlertConfig({
+      showAlert: true,
+      title,
+      message,
+    });
+  };
 
   const handleLogin = async () => {
     setPressedLogin(true); // Show the spinner
 
     try {
       if (username && password) {
-        await signInWithEmailAndPassword(auth, username, password).then(userCredentials => {
-          userCredentials.user.reload();
-          if (!userCredentials.user.emailVerified) {
-            signOut(auth); //In any decline case we will immidiately sign user out
-            Alert.alert("Action Required", "Please Verify Email before logging on");
-          }
-          setUsername('');
-          setPassword('');
-        });
+        if (!username.includes('@')) {
+          showAlert('Error', 'Please Enter a valid Email Address');
+        } else {
+          await signInWithEmailAndPassword(auth, username, password).then(userCredentials => {
+            userCredentials.user.reload();
+            if (!userCredentials.user.emailVerified) {
+              signOut(auth); // In any decline case we will immediately sign the user out
+              showAlert("Action Required", "Please Verify Email before logging on");
+            } else {
+              setUsername('');
+              setPassword('');
+            }
+          });
+        }
       } else {
-        Alert.alert('Error', 'You left one or more fields blank');
+        showAlert('Error', 'You left one or more fields blank');
       }
       setPressedLogin(false); // Hide the spinner
 
@@ -38,8 +52,8 @@ const LoginPage = ({ navigation }) => {
       setPressedLogin(false); // Hide the spinner
       let msg = e.message;
       console.log(msg);
-      if (msg.includes('auth/invalid-email')) { Alert.alert('Error', 'Account Does not Exist'); }
-      if (msg.includes('auth/invalid-credential')) { Alert.alert('Error', 'Invalid Email or Password'); }
+      if (msg.includes('auth/invalid-email')) { showAlert('Error', 'Account Does not Exist'); }
+      if (msg.includes('auth/invalid-credential')) { showAlert('Error', 'Invalid Email or Password'); }
     }
   };
 
@@ -94,6 +108,22 @@ const LoginPage = ({ navigation }) => {
           <Text className='font-bold text-white'>Forgot Password?</Text>
         </Pressable>
       </View>
+
+      <AwesomeAlert
+        show={alertConfig.showAlert}
+        showProgress={false}
+        title={alertConfig.title}
+        message={alertConfig.message}
+        closeOnTouchOutside={true}
+        closeOnHardwareBackPress={false}
+        showCancelButton={false}
+        showConfirmButton={true}
+        confirmText="OK"
+        confirmButtonColor="#DD6B55"
+        onConfirmPressed={() => {
+          setAlertConfig({ ...alertConfig, showAlert: false });
+        }}
+      />
     </KeyboardAvoidingView>
   );
 };

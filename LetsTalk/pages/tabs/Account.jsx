@@ -86,7 +86,20 @@ const ProfilePage = ({ route, navigation }) => (
   <View className="flex-1 bg-gray-100">
     <Stack.Navigator initialRouteName={'ProfilePage'}>
       <Stack.Screen name="ProfilePage" component={Account} initialParams={route.params} options={{ headerShown: false }} />
-      <Stack.Screen name="Full-Post" component={FullPostScreen} initialParams={{ fromAccount: true }} options={{ headerShown: false }}/>
+      <Stack.Screen name="Full-Post" component={FullPostScreen} initialParams={{ fromAccount: true }} options={{ headerShown: false,
+        
+          transitionSpec: {
+            open: { animation: 'timing', config: { duration: 100} },
+            close: { animation: 'spring', config: { duration: 100 } }
+          },
+    cardStyleInterpolator: ({ current: { progress } }) => {
+      return {
+        cardStyle: {
+         
+        }
+      };
+    }
+      }}/>
       <Stack.Screen name="settings" component={SettingsPage} initialParams={{ fromAccount: true }} options={{ headerShown: false }}/>
     </Stack.Navigator>
   </View>

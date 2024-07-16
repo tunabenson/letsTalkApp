@@ -46,10 +46,10 @@ export async function deletePost(postId) {
 }
 
 
-export async function createPost(postData){
+export async function createPost(postData, path){
   const createPostFunction = httpsCallable(functions,'createPost');
   try {
-    const result = await createPostFunction(postData);
+    const result = await createPostFunction(postData, path);
     return result.data;
   } catch (error) {
     console.error('Error creating post:', error);

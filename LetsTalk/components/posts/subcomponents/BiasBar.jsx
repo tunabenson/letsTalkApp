@@ -1,7 +1,7 @@
 import React from 'react';
 import { View } from 'react-native';
 
-const BiasBar = ({ biasEvaluation, className}) => {
+const BiasBar = ({ biasEvaluation, style}) => {
 
   const { left, center, right } = biasEvaluation;
 
@@ -11,7 +11,7 @@ const BiasBar = ({ biasEvaluation, className}) => {
   const rightPercentage = (right / total) * 100;
 
   return (
-    <View className= {className}>
+    <View className= {style}>
       <View style={{ flex: leftPercentage }} className="bg-blue-500" />
       <View style={{ flex: centralPercentage }} className="bg-white" />
       <View style={{ flex: rightPercentage }} className="bg-red-500" />
