@@ -11,107 +11,24 @@ import PopupMenu from './subcomponents/popupMenu/PopupMenu';
 import Interaction from './subcomponents/Interaction';
 import RenderedArticle from './subcomponents/RenderedArticle';
 import Reply from './subcomponents/Reply';
+import usePostHandler from '../../hooks/usePostInteraction';
+import usePostInteraction from '../../hooks/usePostInteraction';
 
 const Post = (props) => {
-  const [liked, setLiked] = useState( props?.liked);
-  const [disliked, setDisliked] = useState(props?.disliked);
-  const [modalVisible, setModalVisible] = useState(false);
   let yValue;
-  const id = props.item.id;
-
-  const getDislikedStatus = useCallback(async () => {
-    try {
-      const docSnapshot = await getDoc(doc(db, 'posts', id, 'dislikes', auth.currentUser.displayName));
-      return docSnapshot.exists();
-    } catch (error) {
-      console.error(error.message);
-      return false;
-    }
-  }, [id]);
-
-  const getLikedStatus = useCallback(async () => {
-    try {
-      const docSnapshot = await getDoc(doc(db, 'posts', id, 'likes', auth.currentUser.displayName));
-      return docSnapshot.exists();
-    } catch (error) {
-      console.error(error.message);
-      return false;
-    }
-  }, [id]);
-
-
-  const fetchInitialData = useCallback(async () => {
-    try {
-      let likedStatus;
-      let dislikedStatus;
-      if(props?.liked===undefined){
-       likedStatus = await getLikedStatus();
-       setLiked(likedStatus);
-      }
-      if(props?.disliked===undefined){
-       dislikedStatus = await getDislikedStatus();
-       setDisliked(dislikedStatus);
-      }
-
-
-    } catch (error) {
-      console.error('Error fetching initial data:', error);
-    }
-  }, [getLikedStatus, getDislikedStatus]);
-
-  useEffect(() => {
-     if(!props?.fullScreen){
-    fetchInitialData();
-    }
-    else{
-      setDisliked(props.disliked);
-      setLiked(props.liked);
-    }
-  }, []);
-
-    const toggleLike = async () => {
-    try {
-      if (liked) {
-        await deleteDoc(doc(db, 'posts', id, 'likes', auth.currentUser.displayName));
-      }
-      else {
-        await setDoc(doc(db, 'posts', id, 'likes', auth.currentUser.displayName), { time: Timestamp.now() });
-      if (disliked) {
-          await deleteDoc(doc(db, 'posts', id, 'dislikes', auth.currentUser.displayName));
-          setDisliked(false);
-      }
-      setLiked(!liked);
-      }
-    } catch (error) {
-      console.error('Error toggling like status:', error);
-    }
-  };
-
-  const toggleDislike = async () => {
-    try {
-      if (disliked) {
-        await deleteDoc(doc(db, 'posts', id, 'dislikes', auth.currentUser.displayName));
-      } else {
-        await setDoc(doc(db, 'posts', id, 'dislikes', auth.currentUser.displayName), { time: Timestamp.now() });
-        if (liked) {
-          await deleteDoc(doc(db, 'posts', id, 'likes', auth.currentUser.displayName));
-          setLiked(false);
-        }
-        setDisliked(!disliked);
-
-      }
-    } catch (error) {
-      console.error('Error toggling dislike status:', error);
-    }
-  };
-
-
-
-
 
 
   const { item, navigation, fromAccount} = props;
   const isPostOwner = auth.currentUser && item.username === auth.currentUser.displayName;
+  const { liked, disliked, modalVisible, setModalVisible, toggleLike, toggleDislike, fetchInitialData } = usePostInteraction(props.liked, props.disliked, item.path);
+
+  useEffect(() => {
+  if(!props?.fullScreen){
+    fetchInitialData();
+    }
+  }, []);
+
+
 
 
 
@@ -124,7 +41,7 @@ const Post = (props) => {
   return (
     <TouchableOpacity
       disabled={props?.fullScreen}
-      className="m-2 p-4 bg-white border border-lightblue-500 rounded-lg shadow-lg"
+      className="m-2 p-4 mb-6 bg-white border border-lightblue-500 rounded-lg shadow-lg"
       onPress={(event) => {
          if(!props?.fullScreen){ 
           navigation.navigate(navTo(fromAccount), { item, liked, disliked, yValue:event.nativeEvent.pageY-50 });
@@ -163,7 +80,7 @@ const Post = (props) => {
           )}
 
 
-        <>
+        
           <Text className="text-sm text-gray-500 self-end">
             {new Date(item?.date?.seconds * 1000).toLocaleDateString()}
           </Text>
@@ -171,22 +88,22 @@ const Post = (props) => {
         <BiasBar biasEvaluation={item.biasEvaluation}  style="align-bottom  mt-3 mb-3 flex-row h-3 rounded-sm overflow-hidden border border-black w-1/3 "/>
         )}
 
-          <>
+          
           <Interaction toggleLike={()=>toggleLike()} toggleDislike={()=>toggleDislike()} liked={liked} disliked={disliked} />
 
       
 
          {props?.fullScreen && ( <Reply item={item}/>)}
-        </>
+        
 
           {modalVisible &&(
-            <PopupMenu  isUser={isPostOwner} text={item.text} modalVisible={true} postId={id} onClose={()=>setModalVisible(false)} requestInfo={()=>requestHandler()}/>)
+            <PopupMenu  isUser={isPostOwner} text={item.text} modalVisible={true} path={props.item.path} onClose={()=>setModalVisible(false)} requestInfo={()=>requestHandler()}/>)
           }
         
 
 
 
-        </>
+        
 
 
     

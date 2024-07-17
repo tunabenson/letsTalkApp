@@ -107,9 +107,9 @@ const SettingsPage = () => {
       {/* Themes and Customization */}
       <Option 
         style="p-2 mt-2 flex-row bg-white rounded-xl border border-b-4 border-red-600 "
-        handler={SettingsHandler.handleSoundEffects}
-        icon={<FontAwesome name="volume-up" size={24} color="gray" />}
-        text="Sound Effects"
+        handler={SettingsHandler.handleSignOut}
+        icon={<FontAwesome name="sign-out" size={24} color="gray" />}
+        text="Sign Out"
         textStyle="text-gray-600 text-xl font-semibold ml-2"
       />
     </ScrollView>

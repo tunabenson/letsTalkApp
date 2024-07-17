@@ -1,61 +1,27 @@
+// LoginPage.js
 import React, { useState } from 'react';
 import { View, Text, TextInput, Pressable, TouchableOpacity, ActivityIndicator, KeyboardAvoidingView, Platform, Keyboard } from 'react-native';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
-import { auth, db, storage } from '../../api/firebaseConfig';
-import { signInWithEmailAndPassword, signOut } from 'firebase/auth';
 import AwesomeAlert from 'react-native-awesome-alerts';
+import useLogin from '../../hooks/useLogin';
 
 const LoginPage = ({ navigation }) => {
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
-  const [hiddenPassword, setHiddenPassword] = useState(true);
-  const [pressedLogin, setPressedLogin] = useState(false);
   const [alertConfig, setAlertConfig] = useState({
     showAlert: false,
     title: '',
     message: '',
   });
 
-  const showAlert = (title, message) => {
-    setAlertConfig({
-      showAlert: true,
-      title,
-      message,
-    });
-  };
-
-  const handleLogin = async () => {
-    setPressedLogin(true); // Show the spinner
-
-    try {
-      if (username && password) {
-        if (!username.includes('@')) {
-          showAlert('Error', 'Please Enter a valid Email Address');
-        } else {
-          await signInWithEmailAndPassword(auth, username, password).then(userCredentials => {
-            userCredentials.user.reload();
-            if (!userCredentials.user.emailVerified) {
-              signOut(auth); // In any decline case we will immediately sign the user out
-              showAlert("Action Required", "Please Verify Email before logging on");
-            } else {
-              setUsername('');
-              setPassword('');
-            }
-          });
-        }
-      } else {
-        showAlert('Error', 'You left one or more fields blank');
-      }
-      setPressedLogin(false); // Hide the spinner
-
-    } catch (e) {
-      setPressedLogin(false); // Hide the spinner
-      let msg = e.message;
-      console.log(msg);
-      if (msg.includes('auth/invalid-email')) { showAlert('Error', 'Account Does not Exist'); }
-      if (msg.includes('auth/invalid-credential')) { showAlert('Error', 'Invalid Email or Password'); }
-    }
-  };
+  const {
+    username,
+    setUsername,
+    password,
+    setPassword,
+    hiddenPassword,
+    setHiddenPassword,
+    pressedLogin,
+    handleLogin
+  } = useLogin(setAlertConfig, navigation);
 
   return (
     <KeyboardAvoidingView
@@ -67,9 +33,11 @@ const LoginPage = ({ navigation }) => {
         <TextInput
           hitSlop={20}
           className="w-64 p-3 mb-3 border border-gray-300 rounded-2xl text-blackraisin-100 bg-white"
-          onSubmitEditing={() => Keyboard.dismiss()}
+          onSubmitEditing={Keyboard.dismiss}
           placeholder="Email"
           value={username}
+          autoComplete='email'
+          autoCapitalize='none'
           onChangeText={newText => setUsername(newText.replace(/ /g, '').toLowerCase())}
           keyboardType='email-address'
         />
@@ -77,7 +45,7 @@ const LoginPage = ({ navigation }) => {
           <TextInput
             hitSlop={20}
             className="flex-1 text-blackraisin-100 bg-white"
-            onSubmitEditing={() => Keyboard.dismiss()}
+            onSubmitEditing={Keyboard.dismiss}
             placeholder="Password"
             value={password}
             onChangeText={newText => setPassword(newText.replace(/ /g, ''))}
@@ -102,8 +70,6 @@ const LoginPage = ({ navigation }) => {
         <Pressable className='mt-10 mb-5 font-semibold' hitSlop={20} onPress={() => navigation.navigate('SignUpPage')}>
           <Text className='font-bold text-white'> Don't Have an Account? Sign Up Now!</Text>
         </Pressable>
-
-        {/* Forgot Password Link */}
         <Pressable className='mt-10 font-semibold' hitSlop={20} onPress={() => navigation.navigate('ForgotPassword')}>
           <Text className='font-bold text-white'>Forgot Password?</Text>
         </Pressable>
@@ -120,9 +86,7 @@ const LoginPage = ({ navigation }) => {
         showConfirmButton={true}
         confirmText="OK"
         confirmButtonColor="#DD6B55"
-        onConfirmPressed={() => {
-          setAlertConfig({ ...alertConfig, showAlert: false });
-        }}
+        onConfirmPressed={() => setAlertConfig({ ...alertConfig, showAlert: false })}
       />
     </KeyboardAvoidingView>
   );

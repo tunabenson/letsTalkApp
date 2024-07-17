@@ -7,13 +7,14 @@ import { createStackNavigator } from '@react-navigation/stack';
 import { FullPostScreen } from '../ExpandedPosts/FullPostScreen';
 import LoadingPage from '../LoadingPage';
 import SettingsPage from '../Settings/SettingsPage';
+import { FontAwesome } from '@expo/vector-icons';
 const fetchPostsByUsername = async (username) => {
   const postsQuery = query(collection(db, "posts"), where('username', '==', username), orderBy("date", 'desc'), limit(15));
   const snap = await getDocs(postsQuery);
   const temp = [];
 
   for (const document of snap.docs) {
-    const postData = { ...document.data(), id: document.id };
+    const postData = { ...document.data(), id: document.id, path: document.ref.path };
     temp.push(postData);
   }
 
@@ -62,12 +63,14 @@ const Account = ({ route, navigation }) => {
           <Text className="text-gray-500">{new Date(account.joinDate.seconds * 1000).toLocaleDateString("en-US")}</Text>
           {username === auth.currentUser.displayName && (
             <Pressable
-              className="bg-red-500 p-2 rounded-md mt-4 w-24"
+              className="absolute right-2 top-2 mb-3"
               onPress={() => navigation.navigate('settings')}
+              hitSlop={20}
             >
-              <Text className="text-white text-center">Settings</Text>
+            <FontAwesome name='gear' size={25} color='gray' />
             </Pressable>
           )}
+          <Text className='text-gray-700 pt-3 font-medium flex-col'>Achievements: </Text>
         </View>
       </View>
       <View className="flex-1 bg-lightblue-500 border-cyan-400">
