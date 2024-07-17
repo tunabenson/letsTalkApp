@@ -1,3 +1,6 @@
+import { signOut } from "firebase/auth";
+import { auth } from "../../api/firebaseConfig";
+
 const SettingsHandler = {
     handleEditProfile: () => {
       console.log("Edit Profile Clicked");
@@ -38,8 +41,8 @@ const SettingsHandler = {
     handleColorThemes: () => {
       console.log("Color Themes Clicked");
     },
-    handleSoundEffects: () => {
-      console.log("Sound Effects Clicked");
+    handleSignOut: () => {
+      signOut(auth);
     }
   };
   

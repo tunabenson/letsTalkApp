@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+ import React, { useRef, useState } from 'react';
 import { View, TextInput, Text, TouchableOpacity, FlatList, Keyboard } from 'react-native';
 import { FontAwesome } from '@expo/vector-icons';
 import UserResult from '../../components/results/UserResult';
@@ -63,7 +63,7 @@ const SearchPage= ({ navigation }) => {
  
   const SearchBox=()=>{
     const { query, refine } = useSearchBox();
-    const [search, setSearch] = useState('');
+    const [search, setSearch] = useState();
     const inputRef = useRef(null);
   
     // useEffect(()=>{
@@ -141,16 +141,3 @@ const SearchPage= ({ navigation }) => {
   );
 };
 export default SearchPage;
-
-
-
-
-
-
-
-
-
-
-
-
-

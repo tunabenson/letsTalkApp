@@ -6,8 +6,9 @@ import { auth, deletePost, fetchLikeDislikeCounts } from '../../../../api/fireba
 import AwesomeAlert from 'react-native-awesome-alerts';
 import PopupOption from '../../../utility/Option';
 import Option from '../../../utility/Option';
+import MoreInfoPopup from './MoreInfoPopup';
 
-function PopupMenu({ modalVisible, text, isUser, onClose, postId , requestInfo }) {
+function PopupMenu({ modalVisible, text, isUser, onClose, path , requestInfo }) {
 
   const [visible, setVisible] = useState(modalVisible);
   const [editModalVisible, setEditModalVisible] = useState(false);
@@ -86,7 +87,7 @@ function PopupMenu({ modalVisible, text, isUser, onClose, postId , requestInfo }
       onCancelPressed: () => setShowAlert(false),
       onConfirmPressed: async () => {
         try {
-          await deletePost(postId);
+          await deletePost(path);
           onClose();
         } catch (error) {
           console.error('Error deleting post:', error);
@@ -110,7 +111,7 @@ function PopupMenu({ modalVisible, text, isUser, onClose, postId , requestInfo }
 
   const handleMoreInfo=async()=>{
     setVisible(false);
-    const data= await fetchLikeDislikeCounts(postId);
+    const data= await fetchLikeDislikeCounts(path);
     const additional=requestInfo()
     
     setInfoScreenConfig({likes:data.likes, dislikes:data.dislikes, author: additional.author, editDate: additional.editDate});
@@ -207,38 +208,11 @@ function PopupMenu({ modalVisible, text, isUser, onClose, postId , requestInfo }
       </Modal>
 
 
-      
-      <Modal transparent={true} visible={infoScreenVisible}>
-  <TouchableWithoutFeedback onPress={() => onClose()}>  
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.3)' }}>
-        <View className="bg-white p-4 rounded-lg w-11/12 mb-2">
-          <View className="flex-row justify-between items-center mb-4">
-            <Text className='text-3xl font-bold underline'>More Info</Text> 
-          </View>
-          <View className="flex-row justify-start items-center mb-4">
-            <View className="flex-row items-center">
-              <FontAwesome name="thumbs-up" size={20} color={'#4CAF50'} />
-              <Text className='text-xl text-green-500 font-semibold ml-2'>{infoScreenConfig?.likes}</Text>
-            </View>
-            <View className="flex-row items-center pl-3">
-              <FontAwesome name="thumbs-down" size={20} color={'#F44336'} />
-              <Text className='text-xl text-red-500 font-semibold ml-2'>{infoScreenConfig?.dislikes}</Text>
-            </View>
-          </View>
-          <View className="flex-row justify-start mb-4 ">
-            <Text className="text-xl font-medium">Last Edited:</Text>
-            <Text className="text-xl pl-4">{new Date(infoScreenConfig?.editDate?.seconds * 1000 + infoScreenConfig?.editDate?.nanoseconds / 1000000).toLocaleString()}</Text>
-          </View>
-          <View className="flex-row justify-start mb-4">
-            <Text className="text-xl font-medium">Author:</Text>
-            <Text className="text-xl pl-2">{infoScreenConfig?.author}</Text>
-          </View>
-        </View>
-      </View>
-  </TouchableWithoutFeedback>
-</Modal>
 
 
+
+{infoScreenConfig && (      <MoreInfoPopup infoScreenConfig={infoScreenConfig} onClose={onClose} infoScreenVisible={infoScreenVisible}/>
+)}
       <AwesomeAlert
         show={showAlert}
         showProgress={false}

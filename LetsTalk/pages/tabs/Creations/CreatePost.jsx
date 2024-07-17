@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import React, {  useLayoutEffect, useRef } from 'react';
 import { View, Text, TouchableOpacity, ActivityIndicator, Alert, KeyboardAvoidingView, Pressable } from 'react-native';
 import { AntDesign, Entypo, FontAwesome, Ionicons } from '@expo/vector-icons';
 import WebView from 'react-native-webview';
@@ -7,78 +7,41 @@ import Article from '../../../components/posts/subcomponents/Article';
 import { auth, createPost } from '../../../api/firebaseConfig';
 import { ScrollView, Switch, TextInput } from 'react-native-gesture-handler';
 import AwesomeAlert from 'react-native-awesome-alerts';
+import usePostCreation from '../../../hooks/usePostCreation';
+import usePostResponse from '../../../hooks/usePostResponse';
+import PostResult from '../../../components/results/PostResult';
+
+
+const usePostHandler = (navigation, url, replyingTo) => {
+  if (replyingTo) {
+    return usePostResponse(navigation, url, replyingTo);
+  } else {
+    return usePostCreation(navigation, url);
+  }
+};
+
+
 
 const CreatePost = ({  route, replyingTo }) => {
   
+  const PostCreationPage = ({ navigation, route }) => {
+    const {url}= route.params; 
 
+    const handler = usePostHandler(navigation, url, replyingTo);
   
-  
-const PostCreationPage = ({ navigation, route}) => {
-  const { url } = route.params;
-  const [forum, setForum] = useState('');
-  const [content, setContent] = useState('');
-  const [isPosting, setIsPosting] = useState(false);
-  const [usePoliticalAnalysis, setUsePoliticalAnalysis] = useState(false);
-  const [alertVisible, setAlertVisible] = useState(false);
-  const [alertData, setAlertData] = useState({ title: '', message: '', confirmButton: 'OK', onConfirm: () => {} });
-  var articleContents;
-  const handlePost = async () => {
-    setIsPosting(true);
-    if (!forum.trim() || !content.trim()) {
-      setAlertData({
-        title: 'Error',
-        message: 'Please enter both the forum name and the content.',
-        confirmButton: 'OK',
-        onConfirm: () => setAlertVisible(false)
-      });
-      setAlertVisible(true);
-    } else {
-      const user = auth.currentUser.displayName;
-      const post = {
-        text: content,
-        username: user,
-        forum: forum,
-        usePoliticalAnalysis: usePoliticalAnalysis,
-      };
-      if (url) {
-        post.article = articleContents;
-      }
-      const response = await createPost(post, `posts`);
-      setAlertData({
-        title: response.header,
-        message: response.message,
-        confirmButton: 'OK',
-        onConfirm: () => {
-          if (response.header === 'Success') {
-            navigation.goBack();
-            setForum('');
-            setContent('');
-            
-          }
-          setAlertVisible(false);
-        }
-      });
+   
 
-      setAlertVisible(true);
-    }
-    setIsPosting(false);
-  };
-
-  const handleBrowserPress = () => {
-    navigation.navigate('WebViewScreen');
-  };
-
-  return (
-    <ScrollView className="flex-1 bg-lightblue-500 p-4">
+    return (
+      <ScrollView className="flex-1 bg-lightblue-500 p-4">
       <View className="mb-4 mt-6">
         {!replyingTo ?(<><Text className="text-white text-2xl font-semibold mb-6">{'Create a Post'}</Text>
         <View className="bg-white p-4 rounded-2xl mb-4">
           <TextInput
             className="text-black"
             placeholder="Forum Name"
-            value={forum}
+            value={handler.forum}
             hitSlop={20}
-            onChangeText={(text) => setForum(text.replace(/ /g, '_').toLowerCase())} // Remove spaces from forum name
+            onChangeText={(text) => handler.setForum(text.replace(/ /g, '_').toLowerCase())} // Remove spaces from forum name
             />
          
         </View></>):(<>
@@ -86,7 +49,7 @@ const PostCreationPage = ({ navigation, route}) => {
           <FontAwesome name='arrow-left' size={20} color={'white'}/>
         </Pressable>
         <View className='pb-10'>
-          {replyingTo}
+          <PostResult disabled={true} item={replyingTo} />
         </View>
             <View className="w-px bg-gray-400 h-56 absolute left-2 top-20 " /> 
                 </> )}
@@ -96,15 +59,15 @@ const PostCreationPage = ({ navigation, route}) => {
             placeholder="Write your content here..."
             multiline
             numberOfLines={4}
-            value={content}
-            onChangeText={(text) => setContent(text)}
+            value={handler.content}
+            onChangeText={(text) => handler.setContent(text)}
             blurOnSubmit={true}
           />
         </KeyboardAvoidingView>
 
         {url ? (
-          <View className="bg-white p-4 rounded-2xl flex-row mb-4">
-            <Article url={url} onArticleFetch={(data)=>{articleContents=data}} />
+          <View className="rounded-2xl flex-row mb-3">
+            <Article url={url} onArticleFetch={(data)=>{handler.setArticle(data)}} />
           </View>
         ) : null}
 
@@ -112,7 +75,7 @@ const PostCreationPage = ({ navigation, route}) => {
           <TouchableOpacity>
             <AntDesign name="link" size={24} color="white" style={{ marginLeft: 10, marginRight: 20 }} />
           </TouchableOpacity>
-          <TouchableOpacity onPress={handleBrowserPress}>
+          <TouchableOpacity onPress={()=>navigation.navigate('WebViewScreen')}>
             <Entypo name="browser" size={24} color="white" />
           </TouchableOpacity>
         </View>
@@ -120,13 +83,13 @@ const PostCreationPage = ({ navigation, route}) => {
         <View className="flex-row justify-between items-center mb-4">
           <Text className="text-white">Use Political Analysis</Text>
           <Switch
-            value={usePoliticalAnalysis}
-            onValueChange={(value) => setUsePoliticalAnalysis(value)}
+            value={handler.usePoliticalAnalysis}
+            onValueChange={(value) => handler.setUsePoliticalAnalysis(value)}
           />
         </View>
 
-        {!isPosting ? (
-          <TouchableOpacity className="bg-white p-4 rounded-lg items-center" onPress={handlePost}>
+        {!handler.isPosting ? (
+          <TouchableOpacity className="bg-white p-4 rounded-lg items-center" onPress={handler.handlePost}>
             <Text className="text-lightblue-500 font-bold">Post</Text>
           </TouchableOpacity>
         ) : (
@@ -134,20 +97,20 @@ const PostCreationPage = ({ navigation, route}) => {
         )}
       </View>
       <AwesomeAlert
-        show={alertVisible}
+        show={handler.alertVisible}
         showProgress={false}
-        title={alertData.title}
-        message={alertData.message}
+        title={handler.alertData.title}
+        message={handler.alertData.message}
         closeOnTouchOutside={true}
         closeOnHardwareBackPress={false}
         showConfirmButton={true}
-        confirmText={alertData.confirmButton}
+        confirmText={handler.alertData.confirmButton}
         confirmButtonColor="#DD6B55"
-        onConfirmPressed={alertData.onConfirm}
+        onConfirmPressed={handler.alertData.onConfirm}
       />
     </ScrollView>
-  );
-};
+    );
+  };
   
 
   const WebViewScreen = ({ navigation }) => {

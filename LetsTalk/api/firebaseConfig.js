@@ -41,11 +41,11 @@ export async function getComments({path}){
 }
 
 const functions = getFunctions(app);
-export async function deletePost(postId) {
+export async function deletePost(path) {
   
   const deletePostFunction = httpsCallable(functions,'deletePost');
   try {
-    const result = await deletePostFunction({ postId });
+    const result = await deletePostFunction({path});
     console.log(result.data.message);
   } catch (error) {
     console.error('Error deleting post:', error);
@@ -85,10 +85,10 @@ export async function getArticleTitleFromURL(url){
   }
 }
 
-export const fetchLikeDislikeCounts = async (postId) => {
+export const fetchLikeDislikeCounts = async (path) => {
   try {
-    const collLikes = collection(db, 'posts', postId, 'likes');
-    const collDislikes = collection(db, 'posts', postId, 'dislikes');
+    const collLikes = collection(db, path, 'likes');
+    const collDislikes = collection(db, path, 'dislikes');
     const snapshotLikes = await getCountFromServer(collLikes);
     const snapshotDislikes = await getCountFromServer(collDislikes);
     const likes= snapshotLikes.data().count || 0;

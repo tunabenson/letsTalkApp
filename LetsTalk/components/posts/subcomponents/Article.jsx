@@ -26,7 +26,7 @@ function Article({url, onArticleFetch}) {
 
   return (
     <View className="flex-1">
-      {article?(<RenderedArticle article={article}/>):(<EmptyAttachment/>)}
+      {article ?(<RenderedArticle article={article}/>):(<EmptyAttachment/>)}
     </View>
   );
 }

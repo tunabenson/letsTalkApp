@@ -6,7 +6,7 @@ import { Entypo } from '@expo/vector-icons'
 function PostResult(props) {
     const item=props.item;
     const onPressHandler=async()=>{
-      props.navigation.navigate('postPage', { id:item.path })
+      props.navigation.navigate('postPage', { item:item})
     }
 
 
