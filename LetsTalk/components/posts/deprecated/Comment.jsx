@@ -3,6 +3,12 @@ import { View, Text, TouchableOpacity, FlatList, Keyboard, KeyboardAvoidingView,
 import { FontAwesome } from '@expo/vector-icons';
 import CommentInput from './CommentInput';
 
+ /**
+  * a component to render responses to posts 
+  * @deprecated as of 7/11/2024, use post component to sub
+  */
+
+
 class Comment extends PureComponent {
   constructor(props) {
     super(props);

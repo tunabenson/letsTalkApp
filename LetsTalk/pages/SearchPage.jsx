@@ -1,12 +1,12 @@
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { View, TextInput, Text, TouchableOpacity, FlatList, Keyboard } from 'react-native';
 import { FontAwesome } from '@expo/vector-icons';
 import UserResult from '../components/results/UserResult';
-import Post from '../components/Post';
+import Post from '../components/posts/Post';
 import {  searchClient } from '../api/firebaseConfig';
 import { createStackNavigator } from '@react-navigation/stack';
 import { FullPostScreen } from './FullPostScreen';
-import ProfilePage from './Account';
+import ProfilePage from './tabs/Account';
 import { InstantSearch, useInfiniteHits, useSearchBox } from 'react-instantsearch-core';
 import PostResult from '../components/results/PostResult';
 import SearchListEmptyComponent from '../components/utility/SearchListEmptyComponent';
@@ -27,7 +27,7 @@ return(
 
 const SearchPage= ({ navigation }) => {
   const [searchType, setSearchType] = useState('usernames'); // Default search type
-
+  //const [initiate, setInitiate] = useState();
   const ResultList=({searchType})=>{
 
     const { hits, isLastPage, showMore } = useInfiniteHits({
@@ -67,6 +67,9 @@ const SearchPage= ({ navigation }) => {
     const [search, setSearch] = useState('');
     const inputRef = useRef(null);
   
+    // useEffect(()=>{
+    //   handleInput(initialValue);
+    // },[])
   
   
     const handleSearch = async () => {
@@ -77,12 +80,16 @@ const SearchPage= ({ navigation }) => {
     const handleInput=(search)=>{
       setSearch(search);
       refine(search);
+      // if(search===''){
+      //   callback(search);
+      // }
+     
     }
   
   
     
     if (query !== search && !inputRef.current?.isFocused()) {
-      setInputValue(query);
+      setSearch(query);
     }
   
     return(
@@ -111,7 +118,8 @@ const SearchPage= ({ navigation }) => {
   return (
     <View className="flex-1 bg-lightblue-500 rounded-lg shadow-lg">
       <View className=" m-4 mt-10 p-5 justify-center bg-white rounded-xl">
-      <InstantSearch searchClient={searchClient} indexName={searchType}>
+        {/* {initiate?( */}
+          <InstantSearch future={{preserveSharedStateOnUnmount:true}} searchClient={searchClient} indexName={searchType}>
         <SearchBox/>
         <View className="flex-row justify-around mb-4">
           <TouchableOpacity onPress={() => {setSearchType('usernames'); }} className={`p-2 rounded-lg ${searchType === 'usernames' ? 'bg-lightblue-500' : 'bg-gray-200'}`}>
@@ -126,6 +134,7 @@ const SearchPage= ({ navigation }) => {
         </View>
         <ResultList searchType={searchType}/>
         </InstantSearch>
+      
       </View>
 
     

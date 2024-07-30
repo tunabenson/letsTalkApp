@@ -5,9 +5,9 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "userInterfaceStyle": "light",
-    "icon":"./assets/icon.png",
+    "icon": "./assets/images/icon.png",
     "splash": {
-      "image": "./assets/splash.png",
+      "image": "./assets/images/splash.png",
       "resizeMode": "cover",
       "backgroundColor": "##1E1D1D"
     },
@@ -18,9 +18,15 @@
       "versionCode": 1,
       "adaptiveIcon": {
         "backgroundColor": "##1E1D1D"
-      }
+      },
+      "permissions": [
+        "android.permission.RECORD_AUDIO"
+      ],
+      "package": "com.anonymous.LetsTalk"
     },
-    "web": {},
+    "web": {
+      "favicon": "./assets/images/icon.png"
+    },
     "plugins": [
       "expo-router",
       [
