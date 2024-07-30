@@ -7,7 +7,7 @@ const UserResult = ({ user, navigation}) => {
     <View>
     <TouchableOpacity  className="flex-row items-center p-2 border-b border-gray-300"  onPress={()=>navigation.navigate('accountPage', {username:user.username})}>
       <Image
-        source={user.url!==' '?{ uri: user.url }:{uri: defaultProfilePhoto}}
+        source={user.url!==' '?{ uri: user.url }: require('../../assets/images/profile.png')}
         className="w-10 h-10 rounded-full"
         style={{ width: 40, height: 40, borderRadius: 20 }}
       />

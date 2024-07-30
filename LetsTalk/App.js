@@ -7,10 +7,10 @@ import Home from './pages/tabs/Home';
 import LoginPage from './pages/authentication/Login';
 import SignUpPage from './pages/authentication/SignupPage';
 import ForgotPasswordPage from './pages/ForgotPasswordPage';
-import { auth, db } from './api/firebaseConfig';
+import { auth} from './api/firebaseConfig';
 import { onAuthStateChanged } from 'firebase/auth';
 import * as SplashScreen from 'expo-splash-screen';
-import { collection, getDocs, limit, orderBy, query } from 'firebase/firestore';
+import { registerRootComponent } from 'expo';
 
 const Stack = createStackNavigator();
 SplashScreen.preventAutoHideAsync();
@@ -19,7 +19,6 @@ export default function App() {
   const [signedIn, setSignedIn] = useState(false);
   const [isAppReady, setIsAppReady] = useState(false);
   const [authChecked, setAuthIsChecked] = useState(false);
-
 
   useEffect(() => {
     async function prepareApp() {

@@ -2,7 +2,13 @@ import React, { useState } from 'react';
 import { View, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform } from 'react-native';
 import { FontAwesome } from '@expo/vector-icons';
 import { Timestamp, addDoc, collection } from 'firebase/firestore';
-import { auth, db } from '../api/firebaseConfig';
+import { auth, db } from '../../../api/firebaseConfig';
+
+ /**
+  * a component to render responses to posts 
+  * @deprecated as of 7/11/2024, use CreatePost page popup component to sub
+  */
+
 
 const CommentInput = ({  itemPath }) => {
   const [comment, setComment] = useState('');

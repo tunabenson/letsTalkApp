@@ -48,18 +48,7 @@ export const fetchPostData=async(inputs)=>{
 
     const getUserPosts=async()=>{
         try{
-            const postsQuery = query(collection(db, "posts"), where('username', '==', inputs.username),  orderBy("date", 'desc'), limit(15));
-            const snap = await getDocs(postsQuery);
-            const temp=[];
-            //TODO: 2 reads for 1 post, is it worth it?
-            for (const document of snap.docs) {
-                const { likes, dislikes } = await fetchLikeDislikeCounts(document.id);
-                const postData = { ...document.data(), id: document.id, likes, dislikes};
-                console.log(temp); 
-                temp.push(postData);
-            };
-            console.log(temp);
-            return temp;
+         
             }catch(error){
               console.log(error);
             } 

@@ -5,10 +5,10 @@ import {collection, initializeFirestore, CACHE_SIZE_UNLIMITED, getDoc, doc, quer
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import {  getStorage } from "firebase/storage";
 import algoliasearch from "algoliasearch";
+import instantsearch from 'react-instantsearch-core'
 // https://firebase.google.com/docs/web/setup#available-libraries
 
 // For Firebase JS SDK v7.20.0 and later, measurementId is optional
-
 const firebaseConfig = {
   apiKey: "AIzaSyClM0A71FzMh5hnxVoa0Meu2FUP2rF14BY",
   authDomain: "letstalk-e7a23.firebaseapp.com",
@@ -42,7 +42,7 @@ export async function getComments({path}){
   const q= query(collection(db, path, "comments") ,limit(15));
 }
 
-const functions = getFunctions(app);
+export const functions = getFunctions(app);
 export async function deletePost(postId) {
   
   const deletePostFunction = httpsCallable(functions,'deletePost');
