@@ -6,7 +6,6 @@ import { auth, db, deletePost } from '../../api/firebaseConfig';
 import CommentInput from './deprecated/CommentInput';
 import BiasBar from './BiasBar';
 import Article from './Article';
-import { navTo } from '../../api/utils';
 import PopupMenu from './popupMenu/PopupMenu';
 import Interaction from './Interaction';
 
@@ -121,7 +120,7 @@ const Post = (props) => {
     <TouchableOpacity
       disabled={props?.disabled}
       className="m-2 p-4 bg-white border border-lightblue-500 rounded-lg shadow-lg"
-      onPress={() => navigation.navigate(navTo(fromAccount), { item, liked, disliked })}
+      onPress={() => navigation.navigate(fromAccount ? 'Full-Post' : 'Post', { item, liked, disliked })}
       activeOpacity={0.7}
     >
       {item.biasEvaluation && <BiasBar biasEvaluation={item.biasEvaluation} />}
