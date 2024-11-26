@@ -3,6 +3,8 @@
 
 Welcome to the LetsTalk app! This guide will help you set up and run the project on your local machine.
 
+Link to DEMO of the app: https://drive.google.com/file/d/1w8mEj0zszVroIASXSv7hNC_74ZRJ1t9k/view?usp=sharing
+
 ## Prerequisites
 
 Before you begin, ensure you have the following installed:
